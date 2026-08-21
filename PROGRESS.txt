@@ -267,5 +267,54 @@ Leer esto primero al arrancar una sesion nueva (ver CLAUDE.md).
   regla del proyecto de no expandir el alcance del paso en curso.
 
 ### Estado del repo al cerrar esta sesion
-- Branch `feature/hoc-detection` con 2 commits (plan + implementacion),
+- Branch `feature/hoc-detection` mergeada (ff) a main y pusheada, junto
+  con la branch, tras confirmacion del usuario.
+
+## 2026-08-21 (sesion 6)
+
+### Que se hizo
+- Paso 9 planificado en PLAN.md e implementado: resolver
+  `React.lazy(() => import(...))` como dependencia, el ultimo de los 4
+  "casos pendientes" originales de PLAN.md (pedido explicitamente por
+  el usuario, "lazy imports next").
+- Verificado con un script exploratorio: un `import('./Foo')` dinamico
+  es un `CallExpression` cuyo `getExpression()` tiene
+  `SyntaxKind.ImportKeyword`; su primer argumento (string literal)
+  resuelve, via `arg.getSymbol()`, a un simbolo cuya declaracion es
+  directamente el `SourceFile` importado — misma confiabilidad que
+  `getModuleSpecifierSourceFile()` para imports estaticos.
+- `extractImports.ts`: nueva funcion `getDynamicallyImportedFiles` que
+  busca esos `CallExpression` en el archivo y resuelve cada uno a su
+  `SourceFile`, descartando `node_modules`. Se combina con
+  `getLocalImportedFiles` antes de armar `importedFilePaths`. No hizo
+  falta tocar `detectComponents.ts`: el argumento de `React.lazy` es
+  una `ArrowFunction`, no un `Identifier` PascalCase, asi que no
+  dispara la heuristica de HOC del Paso 8 (correctamente: el
+  componente real ya existe como su propia entrada en su archivo).
+- Fixture: `components/Sidebar.tsx` agregado y consumido desde
+  `App.tsx` unicamente via `React.lazy(() => import(...))` dentro de
+  un `Suspense`, para probarlo end-to-end (`App -> [..., Sidebar]`) en
+  el `graph.json` real.
+- Tests: 2 casos borde nuevos (lazy import simple, `import()` dinamico
+  a archivo sin componentes no aporta dependencias) mas actualizacion
+  de los 4 tests de integracion. 29 tests totales, todos pasando.
+  `npm run build` y `npm run scan` verificados manualmente (9
+  componentes, sin duplicados).
+
+### Que quedo pendiente
+- Los 4 "casos pendientes" originales de PLAN.md estan todos
+  resueltos (Pasos 6-9). Queda pendiente el bug de `returnsJsx`
+  descubierto en el Paso 8 (ver sesion anterior), sin resolver.
+- REPO_STANDARDS.md Fase 0 (Husky, ESLint+Prettier, README minimo,
+  Dependabot) sigue sin implementar.
+
+### Decisiones tomadas
+- Resolver el specifier del `import()` dinamico via el simbolo del
+  string literal (no resolviendo la ruta a mano ni con regex),
+  consistente con el resto del proyecto — TypeScript ya resuelve
+  dynamic imports para type-checking, y esa resolucion queda accesible
+  via `getSymbol()`.
+
+### Estado del repo al cerrar esta sesion
+- Branch `feature/lazy-imports` con 2 commits (plan + implementacion),
   pendiente de confirmacion del usuario para mergear y pushear.
