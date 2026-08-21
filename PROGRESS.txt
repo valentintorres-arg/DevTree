@@ -425,7 +425,42 @@ Leer esto primero al arrancar una sesion nueva (ver CLAUDE.md).
   distorsionen contenido.
 
 ### Estado del repo al cerrar esta sesion
-- Branch `feature/repo-standards-fase0` con 4 commits (ESLint+Prettier+
-  Husky/lint-staged, README, Dependabot, y este registro en
-  PROGRESS.txt), pendiente de confirmacion del usuario para mergear y
-  pushear.
+- Branch `feature/repo-standards-fase0` mergeada (ff) a main y
+  pusheada, junto con la branch, tras confirmacion del usuario.
+
+## 2026-08-21 (sesion 9)
+
+### Que se hizo
+- Migracion de npm a pnpm en todo el repo (pedido explicito del
+  usuario: "always use pnpm"), guardado como preferencia en memoria
+  para sesiones futuras.
+- `package-lock.json` reemplazado por `pnpm-lock.yaml` en la raiz y en
+  `poc-parser` (se mantiene la misma estructura de dos proyectos
+  independientes, no se convirtio a pnpm workspace).
+- `packageManager: "pnpm@10.34.5"` agregado a ambos `package.json`.
+- `.husky/pre-commit` actualizado (`pnpm exec lint-staged` en vez de
+  `npx lint-staged`), verificado de nuevo manualmente (stage + hook) y
+  confirmado en el commit real de la migracion.
+- `README.md` y el item de checklist de `REPO_STANDARDS.md`
+  actualizados para instruir `pnpm` en vez de `npm`.
+  `.prettierignore` actualizado para ignorar `pnpm-lock.yaml`.
+- Dependabot no necesito cambios: el ecosystem `"npm"` de
+  `dependabot.yml` cubre `pnpm-lock.yaml` igual que `package-lock.json`.
+- Verificado: `pnpm test` (32/32), `pnpm run build`, `pnpm run scan`
+  (mismo `graph.json` de 9 componentes que antes), `pnpm exec eslint`
+  y `pnpm exec prettier --check` limpios.
+
+### Que quedo pendiente
+- Nada nuevo. Mismo estado que al cierre de la sesion anterior (Fase 0
+  completa salvo `.env.example`; timeout intermitente conocido en el
+  primer test de `poc-parser`, sin resolver).
+
+### Decisiones tomadas
+- No convertir root + poc-parser a un pnpm workspace: se mantiene la
+  separacion deliberada ya existente (raiz = solo tooling, poc-parser =
+  proyecto real con su propio lockfile) — "always use pnpm" pedia
+  cambiar el gestor de paquetes, no la arquitectura de proyectos.
+
+### Estado del repo al cerrar esta sesion
+- Branch `chore/pnpm-migration` con 1 commit, pendiente de confirmacion
+  del usuario para mergear y pushear.
