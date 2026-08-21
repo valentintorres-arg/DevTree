@@ -125,7 +125,7 @@ otros devs). No es prioridad funcional.
 - [ ] README mínimo
 - [ ] `.env.example` (cuando aplique)
 - [ ] Dependabot
-- [ ] Convención de commits/branching aplicada desde el primer commit
+- [x] Convención de commits/branching aplicada desde el primer commit
 
 **Fase 1 — con tests reales:**
 - [ ] GitHub Actions CI (lint + test)

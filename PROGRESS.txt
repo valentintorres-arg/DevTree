@@ -1,0 +1,67 @@
+PROGRESS.txt — historial de avances de DevTree
+================================================
+Leer esto primero al arrancar una sesion nueva (ver CLAUDE.md).
+
+## 2026-08-21
+
+### Que se hizo
+- Paso 0 (setup): proyecto Node/TS en poc-parser/ (typescript, ts-node,
+  ts-morph), tsconfig.json, hello-world de ts-morph verificado. CLAUDE.md
+  creado en la raiz con las reglas de trabajo. includeCoAuthoredBy: false
+  seteado en ~/.claude/settings.json (global).
+- Paso 1 (scanFiles): poc-parser/src/scanFiles.ts carga el tsconfig.json
+  del proyecto target con ts-morph Project (sin globs manuales).
+  sample-project/ creado como fixture: App -> Header -> Button -> Icon,
+  App -> Footer, mas un hook (useToggle), un util (formatDate) y un
+  archivo de solo tipos (types.ts) como casos no-componente. Incluye
+  stubs en dist/ y node_modules/ para probar que el scanner los excluye.
+- Paso 2 (detectComponents): poc-parser/src/detectComponents.ts detecta
+  function declarations y `const X = () => {...}` que devuelven JSX,
+  ignorando hooks (useX) por nombre. Exports default anonimos quedan
+  afuera (ver Casos pendientes).
+- Paso 3 (extractImports): poc-parser/src/extractImports.ts resuelve los
+  imports de cada archivo via el modulo de TypeScript
+  (getModuleSpecifierSourceFile), no con regex, y los matchea contra los
+  componentes detectados por filePath. Imports externos (node_modules)
+  se descartan.
+- Paso 4 (buildGraph): poc-parser/src/buildGraph.ts arma la estructura
+  { components: [{ id, filePath, dependencies }] } y index.ts la escribe
+  en poc-parser/output/graph.json (gitignorado, es output generado).
+  Criterio de exito del POC cumplido: `npm run scan` sobre sample-project/
+  produce un graph.json valido sin intervencion manual.
+- 15 tests con vitest (npm test), todos pasando. Build (npm run build)
+  limpio.
+- REPO_STANDARDS.md agregado en la raiz: checklist de estandares de repo
+  por fases (Fase 0 a Fase 3). Ninguno de los items de Fase 0 (Husky,
+  ESLint+Prettier, README minimo, Dependabot) esta implementado todavia,
+  salvo la convencion de commits/branching.
+
+### Que quedo pendiente
+- Paso 5 (validacion manual): correr el script, revisar graph.json a
+  mano, y anotar en PLAN.md > "Casos pendientes" lo que esta v1 no
+  cubre (ya hay una lista inicial ahi: lazy imports, HOCs, barrel
+  exports, default exports anonimos).
+- REPO_STANDARDS.md Fase 0: Husky + lint-staged, ESLint + Prettier,
+  README minimo viable, Dependabot.
+
+### Decisiones tomadas
+- TypeScript fijado en 5.9.3 (no 7.x): la version 7 rompe ts-node
+  10.9.2 (API interna incompatible). Revisar si se actualiza ts-node
+  antes de subir de mayor de TypeScript.
+- vitest como test runner (no jest/ts-jest), por integracion mas simple
+  con TS sin configuracion extra.
+- *.test.ts excluido del build de tsc; vitest.config.mts acota los tests
+  a src/ para no levantar duplicados desde dist/.
+- output/ (poc-parser) gitignorado: es output generado, no se versiona.
+- Convencion de branching: cada Paso se hace en su propia branch
+  (feature/xxx) creada desde main ya actualizado (fast-forward merge de
+  la branch anterior antes de crear la siguiente), y se commitea +
+  pushea (branch y main) sin esperar pedido explicito, nunca con
+  Co-Authored-By.
+
+### Estado del repo al cerrar esta sesion
+- main esta al dia con origin/main, working tree limpio.
+- Branches feature/setup-poc, feature/scan-files,
+  feature/detect-components, feature/extract-imports y
+  feature/build-graph existen local y remotamente, todas ya mergeadas
+  (ff) en main — se pueden borrar cuando se quiera hacer limpieza.
