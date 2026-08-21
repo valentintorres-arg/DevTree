@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install root tooling deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint (poc-parser/src)
+        run: pnpm run lint
+
+      - name: Format check
+        run: pnpm exec prettier --check .
+
+      - name: Install poc-parser deps
+        working-directory: poc-parser
+        run: pnpm install --frozen-lockfile
+
+      - name: Test poc-parser
+        working-directory: poc-parser
+        run: pnpm test
+
+      - name: Build poc-parser
+        working-directory: poc-parser
+        run: pnpm run build
