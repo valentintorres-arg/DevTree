@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { scanFiles } from "./scanFiles";
-import { detectComponents } from "./detectComponents";
+import { detectComponents, dedupeComponents } from "./detectComponents";
 import { extractImports } from "./extractImports";
 import { buildGraph } from "./buildGraph";
 
@@ -19,11 +19,12 @@ for (const file of sourceFiles) {
   console.log(" -", path.relative(process.cwd(), file.getFilePath()));
 }
 
-const componentsByFile = sourceFiles.map((file) => ({
-  file,
-  components: detectComponents(file),
-}));
-const allComponents = componentsByFile.flatMap((f) => f.components);
+// Un componente re-exportado por un barrel (Paso 6) se "encuentra" tanto
+// al escanear su archivo original como al escanear el barrel — el
+// filePath ya resuelve al archivo real en ambos casos, asi que se
+// dedupea globalmente (no solo dentro de un mismo archivo).
+const fileByPath = new Map(sourceFiles.map((file) => [file.getFilePath() as string, file]));
+const allComponents = dedupeComponents(sourceFiles.flatMap((file) => detectComponents(file)));
 
 console.log(`\nComponentes detectados: ${allComponents.length}`);
 for (const component of allComponents) {
@@ -32,12 +33,16 @@ for (const component of allComponents) {
   );
 }
 
-const entries = componentsByFile.flatMap(({ file, components }) =>
-  components.map((component) => ({
+const entries = allComponents.map((component) => {
+  const file = fileByPath.get(component.filePath);
+  if (!file) {
+    throw new Error(`No se encontro el SourceFile para ${component.filePath}`);
+  }
+  return {
     component,
     dependencies: extractImports(component, file, allComponents),
-  })),
-);
+  };
+});
 
 console.log(`\nDependencias locales:`);
 for (const { component, dependencies } of entries) {

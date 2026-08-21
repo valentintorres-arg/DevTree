@@ -69,8 +69,13 @@ function returnsJsx(fn: FunctionDeclaration | ArrowFunction): boolean {
 // ignorando hooks. Los exports default anonimos (`export default () =>
 // ...`) no tienen nombre resoluble y quedan afuera (ver PLAN.md, casos
 // pendientes).
+//
+// `getExportedDeclarations()` resuelve automaticamente los re-exports
+// desde un barrel (`export { Button } from './Button'`), devolviendo la
+// declaracion real aunque `sourceFile` sea el barrel y no el archivo
+// original — por eso el filePath de cada componente se toma de
+// `declaration.getSourceFile()`, no del `sourceFile` recibido.
 export function detectComponents(sourceFile: SourceFile): DetectedComponent[] {
-  const filePath = sourceFile.getFilePath();
   const found: DetectedComponent[] = [];
 
   for (const declarations of sourceFile.getExportedDeclarations().values()) {
@@ -79,7 +84,11 @@ export function detectComponents(sourceFile: SourceFile): DetectedComponent[] {
         const name = declaration.getName();
         if (!name || HOOK_NAME_PATTERN.test(name)) continue;
         if (returnsJsx(declaration)) {
-          found.push({ name, filePath, exportType: "functionDeclaration" });
+          found.push({
+            name,
+            filePath: declaration.getSourceFile().getFilePath(),
+            exportType: "functionDeclaration",
+          });
         }
       } else if (Node.isVariableDeclaration(declaration)) {
         const initializer = declaration.getInitializer();
@@ -87,16 +96,29 @@ export function detectComponents(sourceFile: SourceFile): DetectedComponent[] {
         const name = declaration.getName();
         if (!name || HOOK_NAME_PATTERN.test(name)) continue;
         if (returnsJsx(initializer)) {
-          found.push({ name, filePath, exportType: "arrowFunction" });
+          found.push({
+            name,
+            filePath: declaration.getSourceFile().getFilePath(),
+            exportType: "arrowFunction",
+          });
         }
       }
     }
   }
 
-  // Un mismo componente puede aparecer bajo dos claves de export (ej.
-  // `export const X` + `export default X`); dedupear por nombre+archivo.
+  return dedupeComponents(found);
+}
+
+// Un mismo componente puede aparecer mas de una vez: por dos claves de
+// export en su propio archivo (`export const X` + `export default X`),
+// o porque un barrel lo re-exporta y tanto su archivo original como el
+// barrel lo "encuentran" al escanear el proyecto completo (Paso 6).
+// Dedupear por archivo+nombre, quedandose con la primera aparicion.
+export function dedupeComponents(
+  components: DetectedComponent[],
+): DetectedComponent[] {
   const seen = new Set<string>();
-  return found.filter(({ name }) => {
+  return components.filter(({ name, filePath }) => {
     const key = `${filePath}:${name}`;
     if (seen.has(key)) return false;
     seen.add(key);

@@ -1,5 +1,21 @@
-import { SourceFile } from "ts-morph";
+import { Node, SourceFile } from "ts-morph";
 import { DetectedComponent } from "./detectComponents";
+
+// Sigue la cadena de alias de un binding importado (import -> re-export
+// -> ... ) hasta el simbolo real detras, via el type checker de
+// TypeScript. Necesario para que un import a traves de un barrel
+// (`import { Button } from './components'`, con `components/index.ts`
+// haciendo `export { Button } from './Button'`) resuelva al archivo
+// original (Button.tsx) y no se quede en el barrel (Paso 6).
+function resolveAliasedSourceFile(bindingNode: Node): SourceFile | undefined {
+  let symbol = bindingNode.getSymbol();
+  while (symbol?.isAlias()) {
+    const aliased = symbol.getAliasedSymbol();
+    if (!aliased || aliased === symbol) break;
+    symbol = aliased;
+  }
+  return symbol?.getValueDeclaration()?.getSourceFile();
+}
 
 // Resuelve, via el modulo de TypeScript (no con regex), los imports de
 // `sourceFile` que apuntan a otro archivo del propio proyecto. Un import
@@ -12,7 +28,23 @@ function getLocalImportedFiles(sourceFile: SourceFile): SourceFile[] {
     const moduleFile = importDeclaration.getModuleSpecifierSourceFile();
     if (!moduleFile) continue;
     if (moduleFile.getFilePath().includes("/node_modules/")) continue;
-    localFiles.push(moduleFile);
+
+    const bindingNodes: Node[] = [
+      ...importDeclaration.getNamedImports().map((named) => named.getNameNode()),
+      ...(importDeclaration.getDefaultImport() ? [importDeclaration.getDefaultImport()!] : []),
+      ...(importDeclaration.getNamespaceImport() ? [importDeclaration.getNamespaceImport()!] : []),
+    ];
+
+    if (bindingNodes.length === 0) {
+      // Import de solo efecto (ej. `import "./styles.css"`), sin bindings
+      // que resolver: se mantiene el archivo del module specifier tal cual.
+      localFiles.push(moduleFile);
+      continue;
+    }
+
+    for (const bindingNode of bindingNodes) {
+      localFiles.push(resolveAliasedSourceFile(bindingNode) ?? moduleFile);
+    }
   }
 
   return localFiles;

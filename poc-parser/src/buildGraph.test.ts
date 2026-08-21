@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import path from "path";
 import { scanFiles } from "./scanFiles";
-import { detectComponents } from "./detectComponents";
+import { detectComponents, dedupeComponents } from "./detectComponents";
 import { extractImports } from "./extractImports";
 import { buildGraph } from "./buildGraph";
 
@@ -10,18 +10,15 @@ const sampleProjectTsConfig = path.join(sampleProjectRoot, "tsconfig.json");
 
 describe("buildGraph", () => {
   it("produces the {components: [{id, filePath, dependencies}]} shape from PLAN.md", () => {
+    // Mismo pipeline que index.ts: dedupear globalmente, ya que el barrel
+    // (components/index.ts) re-descubre los mismos componentes.
     const files = scanFiles(sampleProjectTsConfig);
-    const componentsByFile = files.map((file) => ({
-      file,
-      components: detectComponents(file),
+    const fileByPath = new Map(files.map((f) => [f.getFilePath() as string, f]));
+    const allComponents = dedupeComponents(files.flatMap(detectComponents));
+    const entries = allComponents.map((component) => ({
+      component,
+      dependencies: extractImports(component, fileByPath.get(component.filePath)!, allComponents),
     }));
-    const allComponents = componentsByFile.flatMap((f) => f.components);
-    const entries = componentsByFile.flatMap(({ file, components }) =>
-      components.map((component) => ({
-        component,
-        dependencies: extractImports(component, file, allComponents),
-      })),
-    );
 
     const graph = buildGraph(entries, sampleProjectRoot);
 

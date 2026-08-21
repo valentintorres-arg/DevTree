@@ -21,6 +21,7 @@ describe("scanFiles", () => {
         "Header.tsx",
         "Icon.tsx",
         "formatDate.ts",
+        "index.ts",
         "index.tsx",
         "types.ts",
         "useToggle.ts",
