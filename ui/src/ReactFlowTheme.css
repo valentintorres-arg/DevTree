@@ -1,20 +1,89 @@
-/* @xyflow/react's Controls/MiniMap panels hardcode a white background
-   but not an explicit icon/text color. With `color-scheme: light dark`
-   set on :root (index.css, so the empty canvas matches the OS theme),
-   Chrome's dark-mode UA styling turns native <button> text/icon color
-   white by default — invisible against the panel's white background.
-   Pin these two panels to an explicit light appearance regardless of
-   color-scheme, since they're chrome, not canvas content. */
+/* @xyflow/react's Controls/MiniMap panels hardcode a light background
+   (and no explicit icon/text color) regardless of the app's own theme.
+   The canvas here renders dark (color-scheme: light dark in index.css,
+   following the OS/browser preference — see ComponentNode.css), so a
+   default light panel sits in the corner looking like a plain white
+   box even once its content is visible/legible. Themed here to match
+   the dark card style used for nodes, instead of leaving it light. */
 .react-flow__controls-button {
-  background-color: #ffffff;
-  color: #222;
-  border-bottom-color: #eee;
+  background-color: #181a26;
+  border-bottom-color: #2d2f42;
+  color: #e9e9f2;
 }
 
 .react-flow__controls-button:hover {
-  background-color: #f4f4f4;
+  background-color: #232538;
+}
+
+.react-flow__controls-button svg {
+  fill: #e9e9f2;
 }
 
 .react-flow__minimap {
-  background-color: #f6f6fb;
+  background-color: #181a26;
+}
+
+.editor-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.add-component-button,
+.delete-edge-button {
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.5rem 0.9rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.add-component-button {
+  border: 1px solid #4d50c9;
+  background: #4d50c9;
+  color: #ffffff;
+}
+
+.add-component-button:hover {
+  background: #3f42b8;
+}
+
+.delete-edge-button {
+  border: 1px solid #b53a70;
+  background: #ffffff;
+  color: #b53a70;
+}
+
+.delete-edge-button:hover {
+  background: #fdecef;
+}
+
+.action-error {
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  background: #fdecef;
+  border: 1px solid #b53a70;
+  color: #b53a70;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.75rem;
+  max-width: 280px;
+}
+
+/* Handles por default son muy chicos (6px) para arrastrar una conexion
+   con precision — agrandados para que conectar dos nodos sea mas facil
+   de acertar con el mouse (Fase 2, UI_PLAN.md). */
+.react-flow__handle {
+  width: 10px;
+  height: 10px;
+}
+
+.react-flow__edge-path {
+  stroke-width: 1.5;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #4d50c9;
+  stroke-width: 2.5;
 }

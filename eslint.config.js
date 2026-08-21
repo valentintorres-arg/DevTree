@@ -28,5 +28,15 @@ module.exports = tseslint.config(
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
     },
   },
+  {
+    // Config de Vite y el plugin de la API de edicion (Fase 2 de
+    // UI_PLAN.md) viven en la raiz de ui/, no bajo src/ — codigo Node,
+    // no React, asi que sin las reglas de react-hooks/react-refresh.
+    files: ["ui/vite.config.ts", "ui/vite-plugin-graph-editor.ts"],
+    extends: [tseslint.configs.recommended],
+    rules: {
+      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+    },
+  },
   eslintConfigPrettier,
 );

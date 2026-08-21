@@ -6,7 +6,7 @@
   "packageManager": "pnpm@10.34.5",
   "scripts": {
     "prepare": "husky",
-    "lint": "eslint poc-parser/src ui/src",
+    "lint": "eslint poc-parser/src ui/src ui/vite.config.ts ui/vite-plugin-graph-editor.ts",
     "format": "prettier --write ."
   },
   "lint-staged": {
@@ -14,6 +14,9 @@
       "eslint --fix"
     ],
     "ui/src/**/*.{ts,tsx}": [
+      "eslint --fix"
+    ],
+    "ui/{vite.config.ts,vite-plugin-graph-editor.ts}": [
       "eslint --fix"
     ],
     "**/*.{ts,tsx,js,json,md}": [
