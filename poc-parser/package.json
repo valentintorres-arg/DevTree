@@ -1,0 +1,23 @@
+{
+  "name": "poc-parser",
+  "version": "1.0.0",
+  "description": "POC: parser de arbol de componentes React con ts-morph",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "scan": "ts-node src/index.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "ts-morph": "^28.0.0"
+  }
+}
