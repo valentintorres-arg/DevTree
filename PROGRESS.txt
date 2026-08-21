@@ -151,6 +151,54 @@ Leer esto primero al arrancar una sesion nueva (ver CLAUDE.md).
   en mas de un archivo.
 
 ### Estado del repo al cerrar esta sesion
-- Branch `feature/barrel-exports` con 2 commits (plan + implementacion),
-  aun no mergeada a main a la espera de confirmacion del usuario para
-  pushear.
+- Branch `feature/barrel-exports` mergeada (ff) a main y pusheada, junto
+  con la branch, tras confirmacion del usuario.
+
+## 2026-08-21 (sesion 4)
+
+### Que se hizo
+- Paso 7 planificado en PLAN.md e implementado: detectar componentes
+  con default export anonimo, el ultimo de los 4 "casos pendientes"
+  originales de PLAN.md.
+- Verificado con un script exploratorio (ts-morph en memoria, borrado
+  despues) como `getExportedDeclarations()` representa cada caso:
+  `export default function () {...}` da un `FunctionDeclaration` con
+  `getName() === undefined`; `export default () => {...}` da el nodo
+  `ArrowFunction` suelto (no envuelto en `VariableDeclaration`).
+- `detectComponents.ts`: cuando no hay nombre, se deriva del archivo
+  (`path.basename(filePath, ext)`, ej. `Modal.tsx` -> `Modal`),
+  convencion de "un componente por archivo". Nueva rama para el caso
+  `ArrowFunction` suelto. El chequeo de hooks se aplica sobre el nombre
+  ya resuelto (real o derivado). Nuevos `ComponentExportType`:
+  `anonymousDefaultFunction`, `anonymousDefaultArrow` (informativos,
+  no se exponen en `graph.json`).
+- Fixture: `sample-project/src/components/Badge.tsx` (export default
+  arrow anonimo) agregado y consumido por `Footer.tsx` via default
+  import, para probar deteccion + resolucion de dependencia end-to-end
+  (`Footer -> [Badge]`) contra el `graph.json` real.
+- Tests: 3 casos borde nuevos (function anonima, arrow anonima, nombre
+  derivado tipo hook se sigue ignorando) mas actualizacion de los 4
+  tests de integracion que dependen del fixture de sample-project.
+  22 tests totales, todos pasando. `npm run build` y `npm run scan`
+  verificados manualmente (6 componentes, sin duplicados).
+
+### Que quedo pendiente
+- Quedan 2 casos de PLAN.md > "Casos pendientes" sin resolver: lazy
+  imports (`React.lazy`) y HOCs (`withAuth(Component)`).
+- REPO_STANDARDS.md Fase 0 (Husky, ESLint+Prettier, README minimo,
+  Dependabot) sigue sin implementar.
+
+### Decisiones tomadas
+- El nombre de un componente con default export anonimo se deriva del
+  nombre de archivo, no de un placeholder generico ("default", etc.) —
+  matchea la convencion real de "un componente por archivo" y permite
+  que el componente participe del grafo de dependencias igual que
+  cualquier otro. Riesgo aceptado y documentado en PLAN.md: dos
+  archivos con el mismo nombre en carpetas distintas colisionarian en
+  el grafo (mismo riesgo preexistente para nombres duplicados en
+  general, ya que el `id` del grafo es el nombre, no la ruta).
+
+### Estado del repo al cerrar esta sesion
+- Branch `feature/anonymous-default-exports` con 2 commits (plan +
+  implementacion), pendiente de confirmacion del usuario para mergear
+  y pushear.
