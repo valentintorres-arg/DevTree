@@ -97,7 +97,7 @@ sample-project/         # proyecto React/TS de juguete para probar
 
 ## Casos pendientes (no resolver ahora, solo anotar)
 - [ ] Lazy imports (`React.lazy(() => import(...))`)
-- [ ] HOCs (`withAuth(Component)`)
+- [x] HOCs (`withAuth(Component)`) — ver Paso 8
 - [x] Barrel exports / re-exports desde `index.ts` — ver Paso 6
 - [x] Componentes exportados como `default` sin nombre explícito — ver Paso 7
 
@@ -183,6 +183,69 @@ que matchee un `ArrowFunction` suelto como declaración.
   archivo tipo hook para confirmar que se sigue ignorando) y al menos
   un componente con default anónimo agregado a `sample-project` para
   probarlo end-to-end en el `graph.json` real.
+
+### Paso 8 — HOCs (`const X = withAuth(Component)`)
+
+**Problema:** `const ProtectedPage = withAuth(Page);` no se detecta:
+el initializer es un `CallExpression`, no una `ArrowFunction`, así que
+la rama de `VariableDeclaration` lo descarta. A diferencia de los
+casos anteriores, acá no hay ningún cuerpo de función que inspeccionar
+con `returnsJsx` — `withAuth` casi siempre viene de otro módulo (a
+veces ni siquiera del propio proyecto) y no sabemos qué devuelve.
+
+Verificado con un script exploratorio (ts-morph en memoria) los 3
+shapes relevantes:
+- `export const X = withAuth(Page);` → `VariableDeclaration` con
+  initializer `CallExpression`, `getArguments()` = `[Identifier
+  "Page"]`.
+- `export default withAuth(Page);` (sin variable) →
+  `getExportedDeclarations()` devuelve el `CallExpression` directo
+  (mismo patrón que el default anónimo del Paso 7).
+- HOCs currificados (`connect(mapState)(Component)`) → sigue siendo un
+  `CallExpression` cuyo callee es *otro* `CallExpression`
+  (`connect(mapState)`), pero `getArguments()` del call externo sigue
+  dando `[Identifier "Component"]` — no hace falta lógica especial
+  para curry.
+
+**Heurística elegida (sin verificación de JSX, es la única señal
+estática disponible):** tratar `const X = <CallExpression>` como
+componente cuando:
+1. El nombre (`X`, o el derivado del archivo para `export default
+   <CallExpression>` sin nombre, reutilizando `deriveNameFromFilePath`
+   del Paso 7) es PascalCase (empieza con mayúscula) y no matchea
+   `HOOK_NAME_PATTERN`.
+2. El `CallExpression` tiene **al menos un argumento que es un
+   `Identifier` con nombre PascalCase** — proxy de "envuelve a un
+   componente". Esto excluye deliberadamente falsos positivos obvios
+   como `const Logger = createLogger();` (sin argumentos) mientras
+   sigue aceptando `withAuth(Page)`, `React.memo(Component)` y
+   `connect(mapState)(Component)`.
+
+**Limitación conocida y aceptada (documentar, no resolver):** esta
+heurística puede dar falsos positivos si el argumento PascalCase no es
+en realidad un componente (ej. `const Config = mergeConfigs(DefaultConfig)`)
+y falsos negativos si el HOC no recibe el componente como argumento
+directo. No hay forma de verificarlo estáticamente sin resolver la
+implementación real de la función wrapper (a menudo externa al
+proyecto). No hace falta tocar `extractImports.ts`: si el componente
+envuelto (`Page`) está importado localmente, ya se detecta como
+dependencia por el mecanismo existente (cualquier componente cuyo
+archivo esté entre los imports locales cuenta como dependencia,
+independientemente de si el heurístico de HOC lo detecto por nombre o
+no).
+
+**Cambios:**
+- `detectComponents.ts`: nueva rama en `VariableDeclaration` para
+  initializer `CallExpression` (heurística de arriba), y nueva rama
+  para `Node.isCallExpression(declaration)` (el caso `export default
+  withAuth(Page)` sin nombre propio). Nuevo `ComponentExportType`:
+  `"hocWrapped"`.
+- Fixture: agregar un HOC (`withAuth`) y un componente envuelto en
+  `sample-project`, consumido desde algún componente existente, para
+  probarlo end-to-end en el `graph.json` real.
+- Tests: casos borde en memoria (HOC simple, HOC currificado, `export
+  default` sin nombre, y el falso-positivo-evitado de "sin
+  argumentos").
 
 ## Criterio de éxito del POC
 Correr un solo comando (`npm run scan` o similar) sobre `sample-project/`
