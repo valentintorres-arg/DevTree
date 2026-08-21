@@ -11,6 +11,7 @@ que algo "ya está" o que "no hace falta todavía".
 ## Fase 0 — Desde el arranque del POC (bajo costo, se hace ya)
 
 ### Pre-commit hooks
+
 - Husky + lint-staged
 - Corre ESLint + Prettier sobre los archivos modificados antes de cada
   commit
@@ -18,12 +19,14 @@ que algo "ya está" o que "no hace falta todavía".
   salvo excepción justificada y avisada)
 
 ### Linter y formatter
+
 - ESLint configurado para TS/React
 - Prettier con config compartida (`.prettierrc`)
 - Ambos corren también en CI (no solo en pre-commit), como red de
   seguridad ante bypass local
 
 ### README mínimo viable
+
 - Descripción corta del proyecto (qué es, qué problema resuelve)
 - Stack técnico
 - Pasos de instalación local (`npm install`, variables de entorno
@@ -32,17 +35,20 @@ que algo "ya está" o que "no hace falta todavía".
   componentes")
 
 ### `.env.example`
+
 - Se crea apenas exista la primera variable de entorno real
 - Valores dummy, nunca reales
 - `.env` real siempre en `.gitignore`
 
 ### Dependabot
+
 - `.github/dependabot.yml` básico: chequeo semanal de dependencias npm
 - Bajo mantenimiento, alto valor de "esto está vivo y seguro"
 
 ### Commits y branching
+
 - Ya definido en `PLAN.md`: formato `[ADD] [FIX] [FEAT] [DOCS]
-  [REFACTOR] [TEST] [CHORE] [STYLE]`, una branch por feature, sin
+[REFACTOR] [TEST] [CHORE] [STYLE]`, una branch por feature, sin
   co-author
 
 ---
@@ -50,12 +56,14 @@ que algo "ya está" o que "no hace falta todavía".
 ## Fase 1 — Cuando el proyecto tenga tests reales corriendo
 
 ### CI con GitHub Actions
+
 - Workflow que se dispara en cada push y cada PR
 - Jobs: install → lint → test (build si aplica)
 - Falla el pipeline si cualquiera de esos pasos falla
 - Node version fijada explícitamente (no `latest`), para reproducibilidad
 
 ### Branch protection en `main`
+
 - Requiere que el CI pase antes de poder mergear
 - Requiere al menos que la branch esté actualizada respecto a `main`
   antes de mergear
@@ -67,6 +75,7 @@ que algo "ya está" o que "no hace falta todavía".
 ## Fase 2 — Cuando haya algo desplegable (deja de ser solo un script CLI)
 
 ### CD (Continuous Deployment)
+
 - Definir plataforma según lo que se esté desplegando:
   - Frontend estático o app → Vercel o Netlify
   - Backend/API → Render o similar
@@ -75,12 +84,14 @@ que algo "ya está" o que "no hace falta todavía".
   Vercel), para poder revisar cambios visualmente antes de mergear
 
 ### Docker
+
 - `Dockerfile` para reproducir el entorno de forma containerizada
 - `docker-compose.yml` si hay múltiples servicios (ej: backend + DB)
 - Objetivo: que cualquiera clone el repo y levante el entorno completo
   con un solo comando
 
 ### Variables de entorno en producción
+
 - Documentar en el README cómo se configuran en la plataforma de
   deploy (sin exponer valores reales)
 
@@ -93,6 +104,7 @@ el proyecto ya funciona y se quiere mostrar hacia afuera (reclutadores,
 otros devs). No es prioridad funcional.
 
 ### README completo
+
 - Screenshots o GIF corto mostrando el producto funcionando
 - Link a demo en vivo (si aplica, post Fase 2)
 - Diagrama de arquitectura simple (Mermaid.js embebido en el README, o
@@ -100,11 +112,13 @@ otros devs). No es prioridad funcional.
   API según corresponda
 
 ### Historial de commits limpio
+
 - Ya cubierto por la convención de Fase 0, pero en esta fase se revisa
   que no haya quedado ningún commit tipo "fix" o "wip" sin squashear si
   rompe la legibilidad del historial
 
 ### Issue templates
+
 - Templates básicos de bug report y feature request en
   `.github/ISSUE_TEMPLATE/`
 - Nota: esto es principalmente para simular actividad de proyecto
@@ -113,6 +127,7 @@ otros devs). No es prioridad funcional.
   funcional a un proyecto donde trabaja una sola persona con Claude Code
 
 ### License
+
 - Agregar un archivo `LICENSE` (MIT es lo más común para portfolio)
 
 ---
@@ -120,6 +135,7 @@ otros devs). No es prioridad funcional.
 ## Checklist rápida (para ir tildando)
 
 **Fase 0 — ahora:**
+
 - [ ] Husky + lint-staged
 - [ ] ESLint + Prettier
 - [ ] README mínimo
@@ -128,15 +144,18 @@ otros devs). No es prioridad funcional.
 - [x] Convención de commits/branching aplicada desde el primer commit
 
 **Fase 1 — con tests reales:**
+
 - [ ] GitHub Actions CI (lint + test)
 - [ ] Branch protection en `main`
 
 **Fase 2 — con algo desplegable:**
+
 - [ ] CD configurado
 - [ ] Dockerfile / docker-compose
 - [ ] Env vars de producción documentadas
 
 **Fase 3 — portfolio:**
+
 - [ ] README con screenshots/GIF/demo
 - [ ] Diagrama de arquitectura
 - [ ] Issue templates

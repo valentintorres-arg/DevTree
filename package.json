@@ -1,0 +1,27 @@
+{
+  "name": "devtree",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Herramientas de repo-hygiene (lint, format, pre-commit hooks) compartidas por los proyectos de este repo.",
+  "scripts": {
+    "prepare": "husky",
+    "lint": "eslint poc-parser/src",
+    "format": "prettier --write ."
+  },
+  "lint-staged": {
+    "poc-parser/src/**/*.ts": [
+      "eslint --fix"
+    ],
+    "**/*.{ts,tsx,js,json,md}": [
+      "prettier --write"
+    ]
+  },
+  "devDependencies": {
+    "eslint": "^10.9.0",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.3.0",
+    "prettier": "^3.9.6",
+    "typescript-eslint": "^8.67.0"
+  }
+}

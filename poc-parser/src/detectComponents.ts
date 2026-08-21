@@ -27,11 +27,7 @@ export interface DetectedComponent {
 const HOOK_NAME_PATTERN = /^use[A-Z0-9]/;
 
 function isJsxNode(node: Node): boolean {
-  return (
-    Node.isJsxElement(node) ||
-    Node.isJsxSelfClosingElement(node) ||
-    Node.isJsxFragment(node)
-  );
+  return Node.isJsxElement(node) || Node.isJsxSelfClosingElement(node) || Node.isJsxFragment(node);
 }
 
 function expressionHasJsx(expr: Node): boolean {
@@ -210,9 +206,7 @@ export function detectComponents(sourceFile: SourceFile): DetectedComponent[] {
 // o porque un barrel lo re-exporta y tanto su archivo original como el
 // barrel lo "encuentran" al escanear el proyecto completo (Paso 6).
 // Dedupear por archivo+nombre, quedandose con la primera aparicion.
-export function dedupeComponents(
-  components: DetectedComponent[],
-): DetectedComponent[] {
+export function dedupeComponents(components: DetectedComponent[]): DetectedComponent[] {
   const seen = new Set<string>();
   return components.filter(({ name, filePath }) => {
     const key = `${filePath}:${name}`;

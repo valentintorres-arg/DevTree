@@ -4,10 +4,7 @@ import { Project, ts } from "ts-morph";
 import { scanFiles } from "./scanFiles";
 import { detectComponents } from "./detectComponents";
 
-const sampleProjectTsConfig = path.resolve(
-  __dirname,
-  "../../sample-project/tsconfig.json",
-);
+const sampleProjectTsConfig = path.resolve(__dirname, "../../sample-project/tsconfig.json");
 
 describe("detectComponents against sample-project", () => {
   it("detects exactly the components, with the right exportType", () => {
@@ -161,10 +158,7 @@ describe("detectComponents HOC-wrapped exports (Paso 8)", () => {
   });
 
   it("detects a HOC-wrapped default export with no variable name, from the file name", () => {
-    const result = detectFromNamedFile(
-      "/ProtectedPage.tsx",
-      `export default withAuth(Page);`,
-    );
+    const result = detectFromNamedFile("/ProtectedPage.tsx", `export default withAuth(Page);`);
     expect(result).toEqual([
       { name: "ProtectedPage", filePath: "/ProtectedPage.tsx", exportType: "hocWrapped" },
     ]);

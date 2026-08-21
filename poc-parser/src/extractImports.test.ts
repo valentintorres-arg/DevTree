@@ -5,10 +5,7 @@ import { scanFiles } from "./scanFiles";
 import { detectComponents, dedupeComponents } from "./detectComponents";
 import { extractImports } from "./extractImports";
 
-const sampleProjectTsConfig = path.resolve(
-  __dirname,
-  "../../sample-project/tsconfig.json",
-);
+const sampleProjectTsConfig = path.resolve(__dirname, "../../sample-project/tsconfig.json");
 
 describe("extractImports against sample-project", () => {
   it("resolves the expected component dependency graph", () => {

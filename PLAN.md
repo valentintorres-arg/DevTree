@@ -8,6 +8,7 @@ React/TS y genere un JSON con el grafo de componentes y sus dependencias
 (React Flow) en una etapa posterior.
 
 **Este POC NO incluye:**
+
 - Chatbot / generación de código con LLM
 - Drag and drop
 - Conexión con backend
@@ -44,6 +45,7 @@ sample-project/         # proyecto React/TS de juguete para probar
 ## Pasos (ejecutar y revisar uno por uno, no todos juntos)
 
 ### Paso 0 — Setup del proyecto
+
 - Inicializar proyecto Node + TypeScript (`npm init`, `tsc --init`)
 - Instalar `ts-morph` como dependencia
 - Confirmar que corre un "hello world" con ts-morph cargando un
@@ -53,6 +55,7 @@ sample-project/         # proyecto React/TS de juguete para probar
   `PROGRESS.txt` al arrancar cada sesión
 
 ### Paso 1 — Escaneo de archivos
+
 - Función que recorra un proyecto target (`sample-project/`) y devuelva
   todos los `.tsx` y `.ts`, ignorando `node_modules`, `dist`, `build`
 - Usar el `Project` de ts-morph apuntando al `tsconfig.json` del proyecto
@@ -60,6 +63,7 @@ sample-project/         # proyecto React/TS de juguete para probar
   correctamente
 
 ### Paso 2 — Detección de componentes
+
 - Para cada archivo, identificar qué exports son componentes React:
   - Function declarations que devuelven JSX
   - `const X = () => {...}` (arrow functions) que devuelven JSX
@@ -67,6 +71,7 @@ sample-project/         # proyecto React/TS de juguete para probar
 - Devolver lista de `{ name, filePath, exportType }`
 
 ### Paso 3 — Extracción de imports locales
+
 - Para cada componente detectado, leer sus import declarations
 - Filtrar SOLO imports relativos o con alias del proyecto (no
   `node_modules`, no librerías externas)
@@ -74,7 +79,9 @@ sample-project/         # proyecto React/TS de juguete para probar
   corresponde (si aplica)
 
 ### Paso 4 — Construcción del grafo
+
 - Combinar todo en una estructura tipo:
+
 ```json
 {
   "components": [
@@ -86,9 +93,11 @@ sample-project/         # proyecto React/TS de juguete para probar
   ]
 }
 ```
+
 - Escribir esto a `output/graph.json`
 
 ### Paso 5 — Validación manual
+
 - Correr el script contra `sample-project/`
 - Revisar el `graph.json` a mano: ¿están todos los componentes? ¿las
   dependencias son correctas? ¿faltó algún caso (lazy imports, HOCs,
@@ -96,6 +105,7 @@ sample-project/         # proyecto React/TS de juguete para probar
 - Anotar acá abajo, en "Casos pendientes", lo que no cubre esta v1
 
 ## Casos pendientes (no resolver ahora, solo anotar)
+
 - [x] Lazy imports (`React.lazy(() => import(...))`) — ver Paso 9
 - [x] HOCs (`withAuth(Component)`) — ver Paso 8
 - [x] Barrel exports / re-exports desde `index.ts` — ver Paso 6
@@ -108,6 +118,7 @@ sample-project/         # proyecto React/TS de juguete para probar
 (`import { Button } from './components'`, donde `components/index.ts`
 hace `export { Button } from './Button'`) no se detecta hoy
 correctamente:
+
 - `detectComponents` usa `getExportedDeclarations()`, que ya resuelve
   la declaración real a través del re-export, pero le asigna el
   `filePath` del archivo barrel (bug) en lugar del archivo donde
@@ -118,6 +129,7 @@ correctamente:
   `filePath` correcto es el archivo original).
 
 **Cambios:**
+
 - `detectComponents.ts`: usar `declaration.getSourceFile().getFilePath()`
   (no el `sourceFile` recibido como parámetro) como `filePath` de cada
   componente. Extraer el dedupe existente (por archivo+nombre) a una
@@ -159,6 +171,7 @@ devuelve el nodo `ArrowFunction` directamente (no envuelto en una
 que matchee un `ArrowFunction` suelto como declaración.
 
 **Cambios:**
+
 - `detectComponents.ts`:
   - Cuando el `FunctionDeclaration` no tiene nombre, derivar uno del
     archivo (`path.basename(filePath, ext)`, ej. `Modal.tsx` → `Modal`)
@@ -196,14 +209,15 @@ veces ni siquiera del propio proyecto) y no sabemos qué devuelve.
 
 Verificado con un script exploratorio (ts-morph en memoria) los 3
 shapes relevantes:
+
 - `export const X = withAuth(Page);` → `VariableDeclaration` con
   initializer `CallExpression`, `getArguments()` = `[Identifier
-  "Page"]`.
+"Page"]`.
 - `export default withAuth(Page);` (sin variable) →
   `getExportedDeclarations()` devuelve el `CallExpression` directo
   (mismo patrón que el default anónimo del Paso 7).
 - HOCs currificados (`connect(mapState)(Component)`) → sigue siendo un
-  `CallExpression` cuyo callee es *otro* `CallExpression`
+  `CallExpression` cuyo callee es _otro_ `CallExpression`
   (`connect(mapState)`), pero `getArguments()` del call externo sigue
   dando `[Identifier "Component"]` — no hace falta lógica especial
   para curry.
@@ -211,8 +225,9 @@ shapes relevantes:
 **Heurística elegida (sin verificación de JSX, es la única señal
 estática disponible):** tratar `const X = <CallExpression>` como
 componente cuando:
+
 1. El nombre (`X`, o el derivado del archivo para `export default
-   <CallExpression>` sin nombre, reutilizando `deriveNameFromFilePath`
+<CallExpression>` sin nombre, reutilizando `deriveNameFromFilePath`
    del Paso 7) es PascalCase (empieza con mayúscula) y no matchea
    `HOOK_NAME_PATTERN`.
 2. El `CallExpression` tiene **al menos un argumento que es un
@@ -236,16 +251,17 @@ independientemente de si el heurístico de HOC lo detecto por nombre o
 no).
 
 **Cambios:**
+
 - `detectComponents.ts`: nueva rama en `VariableDeclaration` para
   initializer `CallExpression` (heurística de arriba), y nueva rama
   para `Node.isCallExpression(declaration)` (el caso `export default
-  withAuth(Page)` sin nombre propio). Nuevo `ComponentExportType`:
+withAuth(Page)` sin nombre propio). Nuevo `ComponentExportType`:
   `"hocWrapped"`.
 - Fixture: agregar un HOC (`withAuth`) y un componente envuelto en
   `sample-project`, consumido desde algún componente existente, para
   probarlo end-to-end en el `graph.json` real.
 - Tests: casos borde en memoria (HOC simple, HOC currificado, `export
-  default` sin nombre, y el falso-positivo-evitado de "sin
+default` sin nombre, y el falso-positivo-evitado de "sin
   argumentos").
 
 ### Paso 9 — Lazy imports (`React.lazy(() => import(...))`)
@@ -265,6 +281,7 @@ confiable que `getModuleSpecifierSourceFile()` para imports estáticos,
 sin resolver rutas a mano.
 
 **Cambios:**
+
 - `extractImports.ts`: nueva función `getDynamicallyImportedFiles`
   que busca todos los `CallExpression` del archivo con
   `expression.getKind() === SyntaxKind.ImportKeyword`, resuelve el
@@ -273,7 +290,7 @@ sin resolver rutas a mano.
   resultado se combina con `getLocalImportedFiles` antes de armar
   `importedFilePaths`.
 - No hace falta tocar `detectComponents.ts`: `const LazySidebar =
-  React.lazy(...)` no matchea ninguna rama existente (su initializer
+React.lazy(...)` no matchea ninguna rama existente (su initializer
   es un `CallExpression` cuyo único argumento es una `ArrowFunction`,
   no un `Identifier` PascalCase, así que tampoco dispara la heurística
   de HOC del Paso 8) — y no hace falta que la dispare: el componente
@@ -289,11 +306,11 @@ sin resolver rutas a mano.
 ### Paso 10 — Fix: `returnsJsx` falso positivo con factory de HOC
 
 **Problema** (encontrado en Paso 8): `expressionHasJsx` busca JSX en
-*todos* los descendientes de la expresión de un `return`, sin límite.
+_todos_ los descendientes de la expresión de un `return`, sin límite.
 Cuando esa expresión es directamente **otra función**
 (`return function Wrapped(props) { return <Component {...props}/>; };`,
 el patrón típico de una factory de HOC), el chequeo encuentra el JSX
-que hay *dentro* de esa función anidada y concluye erróneamente que la
+que hay _dentro_ de esa función anidada y concluye erróneamente que la
 función exterior (`withAuth`) devuelve JSX — cuando en realidad lo que
 devuelve es una función, no JSX.
 
@@ -317,9 +334,10 @@ cualquier otro tipo de expresión (JSX directo, `ParenthesizedExpression`,
 existente sin límite (`expressionHasJsx`), sin cambios.
 
 **Cambios:**
+
 - `detectComponents.ts`: nueva función `isJsxReturnValue(expr)` =
   `NESTED_FUNCTION_KINDS.has(expr.getKind()) ? false :
-  expressionHasJsx(expr)`, usada en ambos puntos donde `returnsJsx`
+expressionHasJsx(expr)`, usada en ambos puntos donde `returnsJsx`
   invocaba `expressionHasJsx` directamente (el cuerpo-expresión de una
   arrow, y la expresión de cada `return` en un cuerpo en bloque).
 - Fixture: `ProtectedPage.tsx` deja de importar `withAuth` de un
@@ -333,6 +351,7 @@ existente sin límite (`expressionHasJsx`), sin cambios.
   (confirmando que ya NO se detecta como componente).
 
 ## Criterio de éxito del POC
+
 Correr un solo comando (`npm run scan` o similar) sobre `sample-project/`
 y obtener un `graph.json` válido que represente correctamente los
 componentes y sus dependencias directas, sin intervención manual.
@@ -342,6 +361,7 @@ componentes y sus dependencias directas, sin intervención manual.
 ## Metodología de trabajo (aplica a todo el proyecto, no solo este POC)
 
 ### Documentación
+
 - Documentar todo: cada módulo con comentarios claros de qué hace y por qué
   (no solo qué hace)
 - Mantener un `README.md` actualizado con setup, comandos disponibles y
@@ -350,6 +370,7 @@ componentes y sus dependencias directas, sin intervención manual.
   Babel) queda registrada en un `docs/decisions.md` o similar
 
 ### Memoria de avances
+
 - Mantener un archivo `PROGRESS.txt` en la raíz del proyecto
 - Cada sesión de trabajo agrega una entrada con fecha, qué se hizo, qué
   quedó pendiente y qué decisiones se tomaron
@@ -357,12 +378,14 @@ componentes y sus dependencias directas, sin intervención manual.
   sesión nueva, para tener contexto de continuidad
 
 ### Testing
+
 - Cada feature/paso del plan debe incluir sus tests (unitarios como
   mínimo; agregar integración donde tenga sentido, ej: correr el parser
   completo contra `sample-project/` y validar el `graph.json` de salida)
 - No se da un paso por terminado sin tests que lo cubran
 
 ### CI/CD y DevOps
+
 - Configurar pipeline de CI (GitHub Actions) que corra lint + tests en
   cada push y en cada PR
 - Definir estructura básica de CD cuando el proyecto llegue a tener algo
@@ -370,6 +393,7 @@ componentes y sus dependencias directas, sin intervención manual.
   preparado para escalar)
 
 ### Branching y commits
+
 - Una branch por feature/paso del plan (ej: `feature/scan-files`,
   `feature/detect-components`)
 - Commits chicos y frecuentes, uno por cada fix o cambio puntual — no
