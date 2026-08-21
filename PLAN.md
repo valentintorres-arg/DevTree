@@ -98,8 +98,52 @@ sample-project/         # proyecto React/TS de juguete para probar
 ## Casos pendientes (no resolver ahora, solo anotar)
 - [ ] Lazy imports (`React.lazy(() => import(...))`)
 - [ ] HOCs (`withAuth(Component)`)
-- [ ] Barrel exports / re-exports desde `index.ts`
+- [x] Barrel exports / re-exports desde `index.ts` — ver Paso 6
 - [ ] Componentes exportados como `default` sin nombre explícito
+
+### Paso 6 — Barrel exports / re-exports desde `index.ts`
+
+**Problema:** un componente importado a través de un barrel
+(`import { Button } from './components'`, donde `components/index.ts`
+hace `export { Button } from './Button'`) no se detecta hoy
+correctamente:
+- `detectComponents` usa `getExportedDeclarations()`, que ya resuelve
+  la declaración real a través del re-export, pero le asigna el
+  `filePath` del archivo barrel (bug) en lugar del archivo donde
+  realmente vive el componente.
+- `extractImports` resuelve el import solo hasta el archivo del
+  `module specifier` (el barrel), sin seguir la cadena de alias hasta
+  el archivo real — por eso no matchea contra el componente (cuyo
+  `filePath` correcto es el archivo original).
+
+**Cambios:**
+- `detectComponents.ts`: usar `declaration.getSourceFile().getFilePath()`
+  (no el `sourceFile` recibido como parámetro) como `filePath` de cada
+  componente. Extraer el dedupe existente (por archivo+nombre) a una
+  función `dedupeComponents` exportada, reutilizable también para
+  dedupear entre archivos distintos (un componente re-exportado por un
+  barrel aparece tanto al escanear su archivo original como al
+  escanear el barrel).
+- `extractImports.ts`: para cada import nombrado/default/namespace,
+  resolver el símbolo real detrás del binding siguiendo la cadena de
+  alias (`symbol.getAliasedSymbol()` en loop mientras `symbol.isAlias()`)
+  vía el type checker de TypeScript (no regex, consistente con el resto
+  del módulo), en vez de asumir que el archivo del `module specifier` es
+  el archivo final.
+- `index.ts`: dedupear `allComponents` globalmente (no solo por
+  archivo) antes de construir el grafo, y resolver el `SourceFile` de
+  cada componente por su `filePath` real (ya no por el archivo donde
+  se lo "encontró").
+- Fixture: agregar `sample-project/src/components/index.ts` (barrel
+  que re-exporta Button/Header/Footer/Icon) y cambiar `App.tsx` para
+  importar `Header`/`Footer` desde el barrel en lugar de la ruta
+  directa — el grafo esperado (`App -> [Footer, Header]`, etc.) no
+  cambia, así que sirve de test de regresión end-to-end sin tocar las
+  expectativas existentes.
+- Tests: casos borde en memoria para alias re-exportado
+  (`export { default as Button } from './Button'`) y barrel-de-barrel
+  (re-export transitivo de dos niveles), además del fixture de
+  integración de arriba.
 
 ## Criterio de éxito del POC
 Correr un solo comando (`npm run scan` o similar) sobre `sample-project/`
