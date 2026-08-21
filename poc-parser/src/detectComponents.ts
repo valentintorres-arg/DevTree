@@ -1,11 +1,19 @@
 import path from "path";
-import { ArrowFunction, FunctionDeclaration, Node, SourceFile, SyntaxKind } from "ts-morph";
+import {
+  ArrowFunction,
+  CallExpression,
+  FunctionDeclaration,
+  Node,
+  SourceFile,
+  SyntaxKind,
+} from "ts-morph";
 
 export type ComponentExportType =
   | "functionDeclaration"
   | "arrowFunction"
   | "anonymousDefaultFunction"
-  | "anonymousDefaultArrow";
+  | "anonymousDefaultArrow"
+  | "hocWrapped";
 
 export interface DetectedComponent {
   name: string;
@@ -82,6 +90,23 @@ function deriveNameFromFilePath(filePath: string): string {
   return path.basename(filePath, path.extname(filePath));
 }
 
+const PASCAL_CASE_PATTERN = /^[A-Z]/;
+
+// Un HOC (`withAuth(Page)`, `connect(mapState)(Widget)`, `React.memo(Widget)`)
+// no tiene un body de funcion propio que analizar con returnsJsx — viene de
+// una funcion casi siempre externa al archivo. Sin poder verificar JSX, se
+// usa el nombre + shape como proxy: PascalCase (convencion de componentes) y
+// al menos un argumento que sea un Identifier PascalCase (proxy de "envuelve
+// a un componente"). Esto excluye a proposito falsos positivos obvios como
+// `const Logger = createLogger()` (sin argumentos), aunque sigue habiendo
+// falsos positivos/negativos posibles que no se pueden resolver
+// estaticamente (ver PLAN.md, Paso 8).
+function looksLikeHocCall(call: CallExpression): boolean {
+  return call
+    .getArguments()
+    .some((arg) => Node.isIdentifier(arg) && PASCAL_CASE_PATTERN.test(arg.getText()));
+}
+
 // Para cada export del archivo, decide si es un componente React:
 // function declarations, `const X = () => {...}` (arrow) o un default
 // anonimo (function o arrow) que devuelven JSX, ignorando hooks.
@@ -109,14 +134,28 @@ export function detectComponents(sourceFile: SourceFile): DetectedComponent[] {
         }
       } else if (Node.isVariableDeclaration(declaration)) {
         const initializer = declaration.getInitializer();
-        if (!initializer || !Node.isArrowFunction(initializer)) continue;
         const name = declaration.getName();
-        if (!name || HOOK_NAME_PATTERN.test(name)) continue;
-        if (returnsJsx(initializer)) {
+        if (!initializer || !name || HOOK_NAME_PATTERN.test(name)) continue;
+
+        if (Node.isArrowFunction(initializer)) {
+          if (returnsJsx(initializer)) {
+            found.push({
+              name,
+              filePath: declaration.getSourceFile().getFilePath(),
+              exportType: "arrowFunction",
+            });
+          }
+        } else if (
+          Node.isCallExpression(initializer) &&
+          PASCAL_CASE_PATTERN.test(name) &&
+          looksLikeHocCall(initializer)
+        ) {
+          // `const ProtectedPage = withAuth(Page);` — no hay body de
+          // funcion que verificar con returnsJsx (ver looksLikeHocCall).
           found.push({
             name,
             filePath: declaration.getSourceFile().getFilePath(),
-            exportType: "arrowFunction",
+            exportType: "hocWrapped",
           });
         }
       } else if (Node.isArrowFunction(declaration)) {
@@ -130,6 +169,19 @@ export function detectComponents(sourceFile: SourceFile): DetectedComponent[] {
             name,
             filePath: declarationFilePath,
             exportType: "anonymousDefaultArrow",
+          });
+        }
+      } else if (Node.isCallExpression(declaration)) {
+        // `export default withAuth(Page);` sin variable intermedia: el
+        // nodo declaracion es el CallExpression directo.
+        const declarationFilePath = declaration.getSourceFile().getFilePath();
+        const name = deriveNameFromFilePath(declarationFilePath);
+        if (HOOK_NAME_PATTERN.test(name)) continue;
+        if (looksLikeHocCall(declaration)) {
+          found.push({
+            name,
+            filePath: declarationFilePath,
+            exportType: "hocWrapped",
           });
         }
       }

@@ -21,6 +21,8 @@ describe("scanFiles", () => {
         "Footer.tsx",
         "Header.tsx",
         "Icon.tsx",
+        "Page.tsx",
+        "ProtectedPage.tsx",
         "formatDate.ts",
         "index.ts",
         "index.tsx",

@@ -23,6 +23,8 @@ describe("detectComponents against sample-project", () => {
       Footer: "arrowFunction",
       Header: "arrowFunction",
       Icon: "arrowFunction",
+      Page: "functionDeclaration",
+      ProtectedPage: "hocWrapped",
     });
   });
 
@@ -134,6 +136,50 @@ describe("detectComponents anonymous default exports (Paso 7)", () => {
       "/useModal.tsx",
       `export default () => { if (Math.random() > 2) return <div />; return null; };`,
     );
+    expect(result).toEqual([]);
+  });
+});
+
+describe("detectComponents HOC-wrapped exports (Paso 8)", () => {
+  it("detects a HOC-wrapped component (PascalCase name + PascalCase argument)", () => {
+    const result = detectFromSource(`
+      export const ProtectedPage = withAuth(Page);
+    `);
+    expect(result).toEqual([
+      { name: "ProtectedPage", filePath: "/virtual.tsx", exportType: "hocWrapped" },
+    ]);
+  });
+
+  it("detects a curried HOC (connect(mapState)(Widget))", () => {
+    const result = detectFromSource(`
+      export const ConnectedWidget = connect(mapStateToProps)(Widget);
+    `);
+    expect(result).toEqual([
+      { name: "ConnectedWidget", filePath: "/virtual.tsx", exportType: "hocWrapped" },
+    ]);
+  });
+
+  it("detects a HOC-wrapped default export with no variable name, from the file name", () => {
+    const result = detectFromNamedFile(
+      "/ProtectedPage.tsx",
+      `export default withAuth(Page);`,
+    );
+    expect(result).toEqual([
+      { name: "ProtectedPage", filePath: "/ProtectedPage.tsx", exportType: "hocWrapped" },
+    ]);
+  });
+
+  it("does not treat a no-argument call as a HOC (avoids an obvious false positive)", () => {
+    const result = detectFromSource(`
+      export const Logger = createLogger();
+    `);
+    expect(result).toEqual([]);
+  });
+
+  it("does not treat a lowercase-named call assignment as a component", () => {
+    const result = detectFromSource(`
+      export const protectedPage = withAuth(Page);
+    `);
     expect(result).toEqual([]);
   });
 });

@@ -27,12 +27,14 @@ describe("extractImports against sample-project", () => {
     }
 
     expect(graph).toEqual({
-      App: ["Footer", "Header"],
+      App: ["Footer", "Header", "ProtectedPage"],
       Badge: [],
       Button: ["Icon"],
       Footer: ["Badge"],
       Header: ["Button"],
       Icon: [],
+      Page: [],
+      ProtectedPage: ["Page"],
     });
   });
 
@@ -45,7 +47,7 @@ describe("extractImports against sample-project", () => {
     const app = allComponents.find((c) => c.name === "App")!;
 
     const deps = extractImports(app, appFile, allComponents).sort();
-    expect(deps).toEqual(["Footer", "Header"]);
+    expect(deps).toEqual(["Footer", "Header", "ProtectedPage"]);
   });
 });
 

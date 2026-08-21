@@ -100,6 +100,20 @@ sample-project/         # proyecto React/TS de juguete para probar
 - [x] HOCs (`withAuth(Component)`) — ver Paso 8
 - [x] Barrel exports / re-exports desde `index.ts` — ver Paso 6
 - [x] Componentes exportados como `default` sin nombre explícito — ver Paso 7
+- [ ] **Bug descubierto en Paso 8, no resuelto:** `returnsJsx` (Paso 2)
+  da falso positivo cuando una función devuelve *otra función* que a su
+  vez contiene JSX (el patrón típico de una factory de HOC:
+  `function withAuth(Component) { return function Wrapped(props) {
+  return <Component {...props} />; }; }`) — `withAuth` se detecta
+  incorrectamente como componente, porque `expressionHasJsx` busca JSX
+  en *todos* los descendientes del `return` sin respetar el límite de
+  función anidada que sí respeta el resto de `returnsJsx`. Por eso el
+  fixture de Paso 8 (`ProtectedPage.tsx`) importa `withAuth` desde un
+  paquete externo no resoluble en vez de definirlo como archivo local
+  del proyecto — evita el bug sin arreglarlo. Fix propuesto (no
+  aplicado): que la búsqueda de JSX dentro de la expresión de un
+  `return` respete el mismo límite de "no bajar a una función anidada"
+  que ya usa el recorrido del cuerpo en bloque.
 
 ### Paso 6 — Barrel exports / re-exports desde `index.ts`
 
