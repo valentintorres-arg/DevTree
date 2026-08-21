@@ -136,10 +136,10 @@ otros devs). No es prioridad funcional.
 
 **Fase 0 — ahora:**
 
-- [ ] Husky + lint-staged
-- [ ] ESLint + Prettier
-- [ ] README mínimo
-- [ ] `.env.example` (cuando aplique)
+- [x] Husky + lint-staged
+- [x] ESLint + Prettier
+- [x] README mínimo
+- [ ] `.env.example` (cuando aplique — todavía no hay variables de entorno)
 - [ ] Dependabot
 - [x] Convención de commits/branching aplicada desde el primer commit
 
