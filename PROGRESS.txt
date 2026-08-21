@@ -462,5 +462,85 @@ Leer esto primero al arrancar una sesion nueva (ver CLAUDE.md).
   cambiar el gestor de paquetes, no la arquitectura de proyectos.
 
 ### Estado del repo al cerrar esta sesion
-- Branch `chore/pnpm-migration` con 1 commit, pendiente de confirmacion
-  del usuario para mergear y pushear.
+- Branch `chore/pnpm-migration` mergeada (ff) a main y pusheada, junto
+  con la branch, tras confirmacion del usuario.
+
+## 2026-08-21 (sesion 10)
+
+### Que se hizo
+- Pedido explicito del usuario: "en auto mode, hace todo lo del repo
+  standards... siempre pusheando a cada paso sin coauthor" — sesion
+  corrida sin pedir confirmacion en cada paso (a diferencia de las
+  sesiones anteriores), pero respetando el alcance por fases que el
+  propio REPO_STANDARDS.md define (no se fuerzo Fase 2 ni items de
+  Fase 3 que el documento mismo marca como "no aplica todavia").
+- Fase 1 completada y verificada de verdad en GitHub Actions (no solo
+  localmente):
+  - `.github/workflows/ci.yml`: install -> lint -> prettier --check ->
+    install de poc-parser -> test -> build. Node fijado a version 20,
+    pnpm via pnpm/action-setup.
+  - Primer run real fallo: `pnpm/action-setup@v4` con `version: 10`
+    en el workflow entraba en conflicto con `packageManager:
+    "pnpm@10.34.5"` ya declarado en package.json. Fix: sacar el
+    input `version` del workflow y dejar que el action lo autodetecte
+    del packageManager field. Confirmado corriendo en verde despues
+    (todos los steps, incluido el test) y de nuevo en el push
+    siguiente (README/LICENSE).
+  - De paso, se encontro y arreglo la causa raiz de la flakiness
+    conocida de sesiones anteriores: el default de vitest (5000ms)
+    para el primer test (que crea un Project de ts-morph en frio) no
+    alcanzaba de forma confiable. Subido `testTimeout` a 20000ms en
+    `vitest.config.mts`; 3 corridas locales limpias seguidas + verde
+    en CI confirman que ya no es intermitente.
+  - Branch protection en `main` (el otro item de Fase 1) **no se
+    pudo automatizar**: no hay `gh` CLI instalado en este entorno y
+    no hay token para pegarle a la API de GitHub directamente. Queda
+    como paso manual — ver "Que quedo pendiente" abajo.
+- Fase 2 (CD, Docker, env vars de produccion): no aplica todavia — el
+  proyecto sigue siendo un script CLI sin nada desplegable. Anotado en
+  el checklist, no implementado, siguiendo la propia logica por fases
+  de REPO_STANDARDS.md.
+- Fase 3 (parcial, lo que aplica ahora):
+  - README.md: seccion "Arquitectura" con el pipeline
+    scanFiles -> detectComponents -> extractImports -> buildGraph
+    como diagrama Mermaid embebido (GitHub lo renderiza nativamente
+    en la pagina del repo).
+  - LICENSE (MIT) agregado y linkeado desde el README.
+  - Sin implementar (anotado, no aplica todavia): screenshots/demo en
+    el README (no hay UI que mostrar) e issue templates (el propio
+    REPO_STANDARDS.md ya dice que no aporta valor funcional a un
+    proyecto de una sola persona en este punto).
+- Cada paso se pusheo a `main` en cuanto quedo verificado (commits +
+  push en `ci/github-actions-fase1`, un fix chico directo a `main`, y
+  `feature/repo-standards-fase3-partial`), sin pedir confirmacion,
+  siguiendo la instruccion explicita del usuario. Ningun commit con
+  Co-Authored-By.
+
+### Que quedo pendiente
+- **Accion manual del usuario, no automatizable desde aca:** activar
+  branch protection en `main` desde GitHub Settings > Branches
+  (github.com/valentintorres-arg/DevTree/settings/branches) — requerir
+  que el check "CI / lint-and-test" pase antes de mergear, y que la
+  branch este actualizada respecto a `main`. El workflow ya esta
+  verificado corriendo en verde, asi que el check existe y esta listo
+  para referenciarse.
+- `.env.example` (Fase 0) y el resto de Fase 2/Fase 3 siguen sin
+  aplicar hasta que el proyecto tenga variables de entorno reales o
+  algo desplegable, respectivamente.
+
+### Decisiones tomadas
+- Interpretar "hace todo lo del repo standards" respetando el propio
+  gating por fases del documento (no forzar Fase 2 sin nada
+  desplegable, no agregar issue templates que el documento mismo
+  desestima) en vez de implementar cosas fuera de contexto solo por
+  completar un checklist — consistente con la regla de CLAUDE.md de no
+  agregar funcionalidad fuera de lo que aplica.
+- Verificar CI corriendo de verdad en GitHub Actions via la API
+  publica (repo es publico, sin necesidad de token) en vez de asumir
+  que un workflow.yml sintacticamente valido iba a funcionar — esto
+  encontro el conflicto real de pnpm/action-setup que una revision
+  solo local nunca hubiera mostrado.
+
+### Estado del repo al cerrar esta sesion
+- main al dia con origin/main, CI verde. Unico pendiente real:
+  branch protection manual (ver arriba).
