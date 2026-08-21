@@ -184,3 +184,34 @@ describe("detectComponents HOC-wrapped exports (Paso 8)", () => {
     expect(result).toEqual([]);
   });
 });
+
+describe("detectComponents returnsJsx fix for HOC factories (Paso 10)", () => {
+  it("does not treat a HOC factory as a component just because it returns a function containing JSX", () => {
+    const result = detectFromSource(`
+      export function withAuth(Component: any) {
+        return function Authenticated(props: any) {
+          return <Component {...props} />;
+        };
+      }
+    `);
+    expect(result).toEqual([]);
+  });
+
+  it("does not treat an arrow-chain HOC factory as a component either", () => {
+    const result = detectFromSource(`
+      export const withAuth = (Component: any) => (props: any) => <Component {...props} />;
+    `);
+    expect(result).toEqual([]);
+  });
+
+  it("still detects a component that returns an array of JSX via .map (regression guard)", () => {
+    const result = detectFromSource(`
+      export function ListPage({ items }: any) {
+        return items.map((item: any) => <li key={item.id}>{item.name}</li>);
+      }
+    `);
+    expect(result).toEqual([
+      { name: "ListPage", filePath: "/virtual.tsx", exportType: "functionDeclaration" },
+    ]);
+  });
+});

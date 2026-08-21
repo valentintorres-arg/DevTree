@@ -45,6 +45,20 @@ const NESTED_FUNCTION_KINDS = new Set([
   SyntaxKind.MethodDeclaration,
 ]);
 
+// El valor de un return "es JSX" si es JSX en si mismo o lo contiene en su
+// estructura (ej. `items.map(item => <li/>)`, donde el array devuelto
+// contiene JSX generado por el callback) — EXCEPTO cuando el valor devuelto
+// es directamente otra funcion (`return function Wrapped() { return
+// <jsx/>; };`, patron de HOC/factory): ahi lo que se devuelve es una
+// funcion, no JSX, sin importar que esa funcion interna si devuelva JSX.
+// Sin este chequeo, expressionHasJsx encontraria el JSX de Wrapped y
+// clasificaria incorrectamente a la factory (ej. withAuth) como
+// componente (bug encontrado en Paso 8, corregido en Paso 10).
+function isJsxReturnValue(expr: Node): boolean {
+  if (NESTED_FUNCTION_KINDS.has(expr.getKind())) return false;
+  return expressionHasJsx(expr);
+}
+
 // Un componente devuelve JSX directamente en su propio cuerpo. Al bajar por
 // el arbol nos salteamos funciones anidadas (ej. un callback de .map)
 // para no confundir el JSX de un callback interno con el del componente.
@@ -53,7 +67,7 @@ function returnsJsx(fn: FunctionDeclaration | ArrowFunction): boolean {
   if (!body) return false;
 
   if (Node.isExpression(body)) {
-    return expressionHasJsx(body);
+    return isJsxReturnValue(body);
   }
 
   let found = false;
@@ -68,7 +82,7 @@ function returnsJsx(fn: FunctionDeclaration | ArrowFunction): boolean {
     }
     if (Node.isReturnStatement(node)) {
       const expr = node.getExpression();
-      if (expr && expressionHasJsx(expr)) {
+      if (expr && isJsxReturnValue(expr)) {
         found = true;
       }
     }

@@ -29,6 +29,7 @@ describe("scanFiles", () => {
         "index.tsx",
         "types.ts",
         "useToggle.ts",
+        "withAuth.tsx",
       ].sort(),
     );
   });
