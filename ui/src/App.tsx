@@ -18,6 +18,8 @@ import { graphToFlow, type ComponentFlowNode } from "./graphToFlow";
 import { layoutWithDagre } from "./layout";
 import { connectComponents, createComponent, disconnectComponents } from "./api";
 import { TreeMiniMap } from "./TreeMiniMap";
+import { CreateComponentModal } from "./CreateComponentModal";
+import { Legend } from "./Legend";
 import type { ComponentGraph } from "./types";
 
 const nodeTypes = { componentNode: ComponentNode };
@@ -37,6 +39,7 @@ export function App() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   useEffect(() => {
     fetch("/graph.json")
@@ -54,26 +57,43 @@ export function App() {
       });
   }, [setNodes, setEdges]);
 
-  const handleAddComponent = useCallback(async () => {
-    const name = window.prompt("Nombre del componente (PascalCase, ej. MyWidget):");
-    if (!name) return;
+  const handleCreateComponent = useCallback(
+    async (name: string) => {
+      setActionError(null);
+      try {
+        const created = await createComponent(name);
+        const newNode: ComponentFlowNode = {
+          id: created.id,
+          type: "componentNode",
+          position: { x: 0, y: 0 },
+          width: 180,
+          height: 56,
+          data: {
+            label: created.id,
+            filePath: created.filePath,
+            exportType: "functionDeclaration",
+          },
+        };
+        setNodes((current) => layoutWithDagre([...current, newNode], edges));
+        setIsCreateModalOpen(false);
+      } catch (err) {
+        // Se deja el modal abierto (no se cierra en error) para poder
+        // corregir el nombre sin perder el dialogo.
+        setActionError(err instanceof Error ? err.message : String(err));
+      }
+    },
+    [edges, setNodes],
+  );
 
+  const handleOpenCreateModal = useCallback(() => {
     setActionError(null);
-    try {
-      const created = await createComponent(name);
-      const newNode: ComponentFlowNode = {
-        id: created.id,
-        type: "componentNode",
-        position: { x: 0, y: 0 },
-        width: 180,
-        height: 56,
-        data: { label: created.id, filePath: created.filePath, exportType: "functionDeclaration" },
-      };
-      setNodes((current) => layoutWithDagre([...current, newNode], edges));
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : String(err));
-    }
-  }, [edges, setNodes]);
+    setIsCreateModalOpen(true);
+  }, []);
+
+  const handleCancelCreateModal = useCallback(() => {
+    setActionError(null);
+    setIsCreateModalOpen(false);
+  }, []);
 
   const handleConnect = useCallback(
     async (connection: Connection) => {
@@ -146,8 +166,11 @@ export function App() {
         <Panel position="bottom-right">
           <TreeMiniMap nodes={nodes} edges={edges} />
         </Panel>
+        <Panel position="top-right">
+          <Legend />
+        </Panel>
         <Panel position="top-left" className="editor-panel">
-          <button type="button" onClick={handleAddComponent} className="add-component-button">
+          <button type="button" onClick={handleOpenCreateModal} className="add-component-button">
             + Nuevo componente
           </button>
           {selectedEdge && (
@@ -155,9 +178,16 @@ export function App() {
               🗑 Eliminar {selectedEdge.source} → {selectedEdge.target}
             </button>
           )}
-          {actionError && <div className="action-error">{actionError}</div>}
+          {actionError && !isCreateModalOpen && <div className="action-error">{actionError}</div>}
         </Panel>
       </ReactFlow>
+      {isCreateModalOpen && (
+        <CreateComponentModal
+          onCancel={handleCancelCreateModal}
+          onCreate={handleCreateComponent}
+          submitError={actionError}
+        />
+      )}
     </div>
   );
 }

@@ -1,0 +1,35 @@
+.legend {
+  background: #181a26;
+  border: 1px solid #2d2f42;
+  border-radius: 8px;
+  padding: 0.6rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 190px;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+}
+
+.legend__title {
+  margin: 0 0 0.15rem;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #9698b3;
+}
+
+.legend__row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: #e9e9f2;
+}
+
+.legend__swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
