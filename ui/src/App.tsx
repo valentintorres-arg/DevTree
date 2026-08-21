@@ -47,7 +47,7 @@ export function App() {
       <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView>
         <Background />
         <Controls />
-        <MiniMap pannable zoomable />
+        <MiniMap pannable zoomable nodeColor="#4d50c9" maskColor="rgba(77, 80, 201, 0.08)" />
       </ReactFlow>
     </div>
   );
