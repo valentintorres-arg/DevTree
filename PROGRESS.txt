@@ -65,3 +65,34 @@ Leer esto primero al arrancar una sesion nueva (ver CLAUDE.md).
   feature/detect-components, feature/extract-imports y
   feature/build-graph existen local y remotamente, todas ya mergeadas
   (ff) en main — se pueden borrar cuando se quiera hacer limpieza.
+
+## 2026-08-21 (sesion 2)
+
+### Que se hizo
+- Repo clonado de cero en una maquina nueva (github.com/valentintorres-arg/DevTree).
+- Paso 5 (validacion manual) completado: `npm install`, `npm test` (15
+  tests, vitest, todos pasando), `npm run build` (limpio) y `npm run
+  scan` corridos contra sample-project/. graph.json generado revisado a
+  mano: componentes y dependencias correctos (App -> Footer, App ->
+  Header -> Button -> Icon; Button -> Icon), coincide con lo esperado en
+  PLAN.md. Los casos no cubiertos por esta v1 ya estaban anotados en
+  PLAN.md > "Casos pendientes" (lazy imports, HOCs, barrel exports,
+  default exports anonimos) — no hizo falta agregar nada nuevo ahi.
+- Detectada una discrepancia: esta misma PROGRESS.txt decia que
+  `includeCoAuthoredBy: false` ya estaba seteado en
+  `~/.claude/settings.json` (global), pero no estaba presente. Se
+  agrego la clave al settings.json global (fuera de este repo).
+
+### Que quedo pendiente
+- REPO_STANDARDS.md Fase 0: Husky + lint-staged, ESLint + Prettier,
+  README minimo viable, Dependabot (sigue sin implementar).
+
+### Decisiones tomadas
+- Ninguna decision de arquitectura nueva. Se confirma que la config
+  global de "sin co-author" puede perderse silenciosamente entre
+  maquinas/sesiones — conviene verificarla si un commit aparece con
+  Co-Authored-By.
+
+### Estado del repo al cerrar esta sesion
+- main al dia con origin/main, working tree limpio (sin cambios de
+  codigo, solo validacion). Paso 5 del plan queda cerrado.
