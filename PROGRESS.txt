@@ -577,3 +577,100 @@ Leer esto primero al arrancar una sesion nueva (ver CLAUDE.md).
 - REPO_STANDARDS.md Fase 0 y Fase 1 completas y verificadas. main
   protegida. Listo para arrancar con la UI (React Flow), proximo tema
   mencionado por el usuario.
+
+## 2026-08-21 (sesion 12)
+
+### Que se hizo
+- Repaso de REPO_STANDARDS.md: no queda nada mas por hacer que aplique
+  hoy (Fase 2 sigue sin nada desplegable, Fase 3 sigue sin UI/intento
+  de portfolio publico). El usuario eligio arrancar la UI de
+  visualizacion en vez de forzar mas checklist.
+- `UI_PLAN.md` creado (documento separado de PLAN.md a proposito, el
+  parser POC pospuso esto explicitamente): Vite + React + TS +
+  `@xyflow/react` (React Flow) + `dagre`, proyecto independiente en
+  `ui/` (mismo patron que poc-parser/sample-project, sin pnpm
+  workspace). 4 pasos (setup, carga sin layout, auto-layout, estilos
+  por exportType) + verificacion end-to-end en un browser real.
+- **Gap encontrado antes de poder implementar Paso UI-3:**
+  `graph.json` (buildGraph.ts) nunca exponia `exportType`, solo se
+  usaba para el log de `index.ts`. Se agrego el campo al
+  `GraphComponent`/schema (test y ejemplo en PLAN.md actualizados) —
+  necesario para que la UI coloree cada nodo por tipo.
+- Scaffold de `ui/` con `create-vite` (react-ts template; el primer
+  intento via `pnpm create vite@latest ui -- --template react-ts`
+  silenciosamente escafoldeo el template vanilla-ts en vez de
+  react-ts — el forwarding de args con `--` no funciono; `pnpm dlx
+  create-vite@latest ui --template react-ts` si funciono
+  correctamente). `oxlint` (el linter que trae el template por
+  default) removido: se lintea centralizado desde la raiz.
+- Implementado: `graphToFlow.ts` (graph.json -> nodes/edges de React
+  Flow), `layout.ts` (auto-layout top-down con dagre), `ComponentNode.tsx`
+  (nodo custom con badge de color por exportType, mismo esquema que el
+  artifact "DevTree Component Graph" ya publicado), `App.tsx` (fetch de
+  `/graph.json`, arma el grafo interactivo).
+- **2 bugs reales encontrados y arreglados verificando en un browser
+  real** (Chrome via claude-in-chrome, no solo build/typecheck) —
+  ninguno de los dos se hubiera visto sin abrir la pagina de verdad:
+  1. Los iconos del panel de Controls de React Flow eran invisibles
+     (blanco sobre blanco). Causa: `color-scheme: light dark` en
+     `:root` (agregado para que el canvas vacio matchee el tema del
+     SO) hace que Chrome aplique su dark-mode nativo a los `<button>`,
+     poniendo `color` (y por herencia el `fill: currentColor` del
+     icono SVG) en blanco, mientras el fondo del boton sigue
+     hardcodeado blanco por el CSS de `@xyflow/react`. Fix:
+     `ReactFlowTheme.css` pinea ese panel y el de MiniMap a colores
+     explicitos, sin sacar `color-scheme` (para no perder el canvas
+     oscuro "gratis").
+  2. El MiniMap no dibujaba ningun nodo (0 elementos
+     `.react-flow__minimap-node`) hasta agregar `width`/`height`
+     explicitos a cada `Node` en `graphToFlow.ts` — sin ese hint, la
+     medicion interna (ResizeObserver) no llegaba a tiempo para el
+     primer render del minimap.
+- ESLint extendido para cubrir `ui/src` (typescript-eslint +
+  `eslint-plugin-react-hooks` + `eslint-plugin-react-refresh`) — 2
+  gotchas de API resueltos: `reactHooks.configs["recommended-latest"]`
+  es formato eslintrc (plugins como array de strings), hace falta
+  `reactHooks.configs.flat["recommended-latest"]` para flat config;
+  `eslint-plugin-react-refresh` exporta el plugin real via `.default`
+  (interop ESM/CJS). Verificado que efectivamente detecta un
+  unused-var real en `ui/src` antes de confiar en el script.
+  `lint-staged`, el script `lint` de la raiz, CI (build + lint de
+  `ui/`) y Dependabot (ecosystem `ui/`) actualizados. `README.md`
+  actualizado con instalacion/uso de `ui/` y arquitectura/stack.
+- Verificado end-to-end: `pnpm run dev` en `ui/`, abierto en Chrome
+  real contra el `graph.json` real de `sample-project` — 9 nodos,
+  colores correctos por `exportType`, mismo arbol que `graph.json`,
+  controles de zoom/fit-view/lock visibles y funcionales, minimap
+  poblado. `pnpm run build` (tsc + vite build) limpio en `poc-parser`
+  y en `ui`. CI verificado corriendo en verde en GitHub Actions con
+  los pasos nuevos de `ui/` incluidos (no solo local).
+
+### Que quedo pendiente
+- De `UI_PLAN.md` > "Casos pendientes": sincronizar `graph.json`
+  automaticamente despues de `pnpm run scan` (hoy es copia manual a
+  `ui/public/`); servir el grafo de un proyecto target arbitrario, no
+  solo `sample-project`; click en un nodo para ver su `filePath`
+  completo (hoy no hay ningun affordance para esto en la UI real,
+  a diferencia del artifact de referencia que usa `<title>` de SVG).
+- REPO_STANDARDS.md Fase 2/3 siguen sin aplicar (nada desplegable
+  todavia, aunque ahora hay una UI — el criterio es "algo desplegable",
+  no solo "existe una UI").
+
+### Decisiones tomadas
+- `graph.json` gana el campo `exportType` de forma retroactiva (no
+  rompe nada existente, es aditivo) porque la UI lo necesita — se
+  actualizo el schema documentado en PLAN.md en vez de que la UI
+  duplique la logica de deteccion de tipo por su cuenta.
+- No convertir el repo en un pnpm workspace al agregar `ui/`: se
+  mantiene la misma separacion deliberada que ya existia entre
+  poc-parser y sample-project.
+- Verificar features de UI en un browser real (no solo que compile)
+  sigue pagando dividendos — ambos bugs de Controls/MiniMap eran
+  invisibles a `tsc`/`vite build` y solo aparecieron al mirar la
+  pagina renderizada de verdad.
+
+### Estado del repo al cerrar esta sesion
+- main al dia con origin/main, CI verde (incluye ahora build+lint de
+  `ui/`). Visualizador funcional contra el `graph.json` real, pendiente
+  solo de mejoras de calidad de vida (sync automatico, targets
+  arbitrarios, click-to-inspect).
