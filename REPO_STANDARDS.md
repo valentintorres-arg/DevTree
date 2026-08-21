@@ -146,9 +146,9 @@ otros devs). No es prioridad funcional.
 **Fase 1 — con tests reales:**
 
 - [x] GitHub Actions CI (lint + test) — verificado corriendo en verde
-- [ ] Branch protection en `main` — no es código, requiere GitHub
-      Settings; no hay `gh` CLI en este entorno para automatizarlo, ver
-      PROGRESS.txt para el paso manual pendiente
+- [x] Branch protection en `main` — activado por el usuario desde
+      GitHub UI (Settings > Branches), requiere el check `lint-and-test`
+      y la branch actualizada. Verificado via la API de GitHub.
 
 **Fase 2 — con algo desplegable:**
 
