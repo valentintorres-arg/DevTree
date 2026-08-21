@@ -3,7 +3,6 @@ import {
   addEdge,
   Background,
   Controls,
-  MiniMap,
   Panel,
   ReactFlow,
   useEdgesState,
@@ -18,6 +17,7 @@ import { ComponentNode } from "./ComponentNode";
 import { graphToFlow, type ComponentFlowNode } from "./graphToFlow";
 import { layoutWithDagre } from "./layout";
 import { connectComponents, createComponent, disconnectComponents } from "./api";
+import { TreeMiniMap } from "./TreeMiniMap";
 import type { ComponentGraph } from "./types";
 
 const nodeTypes = { componentNode: ComponentNode };
@@ -143,7 +143,9 @@ export function App() {
       >
         <Background />
         <Controls />
-        <MiniMap pannable zoomable nodeColor="#8688f0" maskColor="rgba(134, 136, 240, 0.12)" />
+        <Panel position="bottom-right">
+          <TreeMiniMap nodes={nodes} edges={edges} />
+        </Panel>
         <Panel position="top-left" className="editor-panel">
           <button type="button" onClick={handleAddComponent} className="add-component-button">
             + Nuevo componente

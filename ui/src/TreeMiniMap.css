@@ -1,0 +1,20 @@
+.tree-minimap {
+  background: #181a26;
+  border: 1px solid #2d2f42;
+  border-radius: 8px;
+  display: block;
+}
+
+.tree-minimap__edge {
+  stroke: #4d5065;
+  stroke-width: 1;
+}
+
+.tree-minimap__node {
+  fill: #8688f0;
+  cursor: pointer;
+}
+
+.tree-minimap__node:hover {
+  fill: #a5a7f5;
+}

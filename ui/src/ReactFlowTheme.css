@@ -1,10 +1,12 @@
-/* @xyflow/react's Controls/MiniMap panels hardcode a light background
-   (and no explicit icon/text color) regardless of the app's own theme.
-   The canvas here renders dark (color-scheme: light dark in index.css,
-   following the OS/browser preference — see ComponentNode.css), so a
+/* @xyflow/react's Controls panel hardcodes a light background (and no
+   explicit icon/text color) regardless of the app's own theme. The
+   canvas here renders dark (color-scheme: light dark in index.css,
+   following the OS/browser preference — see ComponentNode.css), so the
    default light panel sits in the corner looking like a plain white
    box even once its content is visible/legible. Themed here to match
-   the dark card style used for nodes, instead of leaving it light. */
+   the dark card style used for nodes, instead of leaving it light.
+   (The built-in MiniMap had the same issue, plus it never draws edges
+   — replaced entirely by TreeMiniMap.tsx / TreeMiniMap.css.) */
 .react-flow__controls-button {
   background-color: #181a26;
   border-bottom-color: #2d2f42;
@@ -17,10 +19,6 @@
 
 .react-flow__controls-button svg {
   fill: #e9e9f2;
-}
-
-.react-flow__minimap {
-  background-color: #181a26;
 }
 
 .editor-panel {
