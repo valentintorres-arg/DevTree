@@ -777,3 +777,51 @@ Leer esto primero al arrancar una sesion nueva (ver CLAUDE.md).
   y conectar componentes reales, con delete) implementada y verificada
   end-to-end. `sample-project` de vuelta a su fixture limpia de 9
   componentes, `poc-parser` en 32/32 tests.
+
+## 2026-08-21 (sesion 14)
+
+### Que se hizo
+- Pedido explicito del usuario: "THE COMPONENTS NEED TO BE CLASIFIED
+  AND ALSO, THE CREATE OF A COMPONENT NEEDS TO BE A MODAL". Se
+  pregunto que significaba "clasificados" antes de asumir (podia ser
+  legend, clustering por tipo, o sidebar filtrable) — eligio "agregar
+  un legend".
+- `exportTypeColors.ts`: mapa compartido color+label por `ExportType`,
+  extraido de `ComponentNode.tsx` para que `Legend.tsx` (panel nuevo,
+  top-right) no pueda desincronizarse del color real de cada nodo.
+- `CreateComponentModal.tsx` reemplaza el `window.prompt()` de "+
+  Nuevo componente" (Paso UI-6): valida PascalCase en el momento,
+  muestra el error del servidor (ej. 409 duplicado) dentro del modal
+  sin cerrarlo.
+- Verificado en un browser real (Chrome via claude-in-chrome): legend
+  con las 5 categorias, modal abre/enfoca el input, crear un
+  componente real (aparece el nodo, aparece el archivo en disco),
+  nombre duplicado (se queda abierto con el error visible), cancelar
+  (se cierra sin llamar al endpoint). Componente de prueba
+  (`ModalTestWidget.tsx`) borrado despues, `sample-project` limpio.
+- **Hallazgo de esta sesion:** correr `pnpm test` de `poc-parser` con
+  el dev server de `ui/` corriendo en paralelo (mas toda la
+  automatizacion de browser de la sesion) causaba timeouts
+  intermitentes crecientes (20s -> 96s en reintentos sucesivos) —
+  contencion de recursos real, no una regresion del testTimeout de la
+  sesion anterior. Confirmado parando el dev server: 32/32 verde de
+  nuevo, ~60s (mas lento que el ~15-18s normal de sesiones sin nada
+  mas corriendo, pero sin timeouts).
+
+### Que quedo pendiente
+- Nada nuevo especifico de esta sesion. Sigue pendiente la tension
+  sample-project fixture-vs-target real (ver sesion anterior).
+
+### Decisiones tomadas
+- Preguntar que significa una palabra ambigua ("clasificados") antes
+  de implementar, en vez de asumir la interpretacion mas obvia — el
+  usuario tenia en mente algo especifico (legend) de varias opciones
+  razonables (legend, clustering, sidebar).
+- Si `poc-parser`'s tests se ponen flaky con un dev server corriendo
+  en paralelo, no asumir que es una regresion del codigo — confirmar
+  parando el proceso en paralelo antes de investigar mas.
+
+### Estado del repo al cerrar esta sesion
+- main al dia con origin/main, CI verde. Legend + modal de creacion
+  implementados y verificados. `sample-project` limpio, `poc-parser`
+  en 32/32 tests (sin el dev server de ui/ corriendo en paralelo).

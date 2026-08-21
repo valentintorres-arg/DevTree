@@ -235,6 +235,29 @@ REPO_STANDARDS.md Fase 2, sigue sin aplicar).
   `interactionWidth: 32` en las edges — eran demasiado chicos para
   acertar con precisión con el mouse
 
+#### Paso UI-11 — Legend de clasificación (agregado, no estaba en el plan original)
+
+- Pedido explícito del usuario: los componentes ya se coloreaban/
+  etiquetaban por `exportType` (Paso UI-3), pero nada en la UI
+  explicaba qué significaba cada categoría
+- `exportTypeColors.ts`: mapa compartido color+label por `ExportType`
+  (única fuente de verdad — antes el color vivía solo dentro de
+  `ComponentNode.tsx`)
+- `Legend.tsx`: panel fijo (top-right) que lista las 5 categorías con
+  su swatch de color
+
+#### Paso UI-12 — Modal para crear un componente (agregado, no estaba en el plan original)
+
+- Pedido explícito del usuario: reemplazar el `window.prompt()` del
+  Paso UI-6 por un modal real
+- Valida el formato PascalCase en el momento (deshabilita "Crear" si
+  no es válido); si el servidor devuelve un error (ej. 409 porque el
+  archivo ya existe) lo muestra dentro del modal sin cerrarlo — con el
+  prompt nativo ese error quedaba invisible detrás del propio diálogo
+- Verificado en un browser real: crear un componente real, intentar un
+  nombre duplicado (se queda abierto con el error visible), cancelar
+  (se cierra sin llamar al endpoint)
+
 ### Criterio de éxito de esta fase
 
 Desde el browser: crear un componente, conectarlo a `Page` (o
