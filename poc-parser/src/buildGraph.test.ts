@@ -31,7 +31,7 @@ describe("buildGraph", () => {
         },
       ]),
     });
-    expect(graph.components).toHaveLength(5);
+    expect(graph.components).toHaveLength(6);
   });
 
   it("uses forward-slash relative paths regardless of the host OS separator", () => {

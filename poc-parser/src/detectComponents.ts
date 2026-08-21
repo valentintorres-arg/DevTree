@@ -1,6 +1,11 @@
+import path from "path";
 import { ArrowFunction, FunctionDeclaration, Node, SourceFile, SyntaxKind } from "ts-morph";
 
-export type ComponentExportType = "functionDeclaration" | "arrowFunction";
+export type ComponentExportType =
+  | "functionDeclaration"
+  | "arrowFunction"
+  | "anonymousDefaultFunction"
+  | "anonymousDefaultArrow";
 
 export interface DetectedComponent {
   name: string;
@@ -64,11 +69,22 @@ function returnsJsx(fn: FunctionDeclaration | ArrowFunction): boolean {
   return found;
 }
 
+// Un `export default function () {...}` o `export default () => {...}`
+// no tiene identificador propio (getName() da undefined, o directamente
+// no hay VariableDeclaration de la cual sacar un nombre). Se deriva del
+// nombre de archivo (sin extension), convencion habitual de "un
+// componente por archivo" en proyectos React (Paso 7). Riesgo aceptado:
+// dos archivos con el mismo nombre en carpetas distintas colisionarian
+// en el grafo — el mismo riesgo que ya existe para dos componentes con
+// nombre igual en archivos distintos, porque el `id` del grafo es el
+// nombre, no la ruta.
+function deriveNameFromFilePath(filePath: string): string {
+  return path.basename(filePath, path.extname(filePath));
+}
+
 // Para cada export del archivo, decide si es un componente React:
-// function declarations o `const X = () => {...}` que devuelven JSX,
-// ignorando hooks. Los exports default anonimos (`export default () =>
-// ...`) no tienen nombre resoluble y quedan afuera (ver PLAN.md, casos
-// pendientes).
+// function declarations, `const X = () => {...}` (arrow) o un default
+// anonimo (function o arrow) que devuelven JSX, ignorando hooks.
 //
 // `getExportedDeclarations()` resuelve automaticamente los re-exports
 // desde un barrel (`export { Button } from './Button'`), devolviendo la
@@ -81,13 +97,14 @@ export function detectComponents(sourceFile: SourceFile): DetectedComponent[] {
   for (const declarations of sourceFile.getExportedDeclarations().values()) {
     for (const declaration of declarations) {
       if (Node.isFunctionDeclaration(declaration)) {
-        const name = declaration.getName();
-        if (!name || HOOK_NAME_PATTERN.test(name)) continue;
+        const declarationFilePath = declaration.getSourceFile().getFilePath();
+        const name = declaration.getName() ?? deriveNameFromFilePath(declarationFilePath);
+        if (HOOK_NAME_PATTERN.test(name)) continue;
         if (returnsJsx(declaration)) {
           found.push({
             name,
-            filePath: declaration.getSourceFile().getFilePath(),
-            exportType: "functionDeclaration",
+            filePath: declarationFilePath,
+            exportType: declaration.getName() ? "functionDeclaration" : "anonymousDefaultFunction",
           });
         }
       } else if (Node.isVariableDeclaration(declaration)) {
@@ -100,6 +117,19 @@ export function detectComponents(sourceFile: SourceFile): DetectedComponent[] {
             name,
             filePath: declaration.getSourceFile().getFilePath(),
             exportType: "arrowFunction",
+          });
+        }
+      } else if (Node.isArrowFunction(declaration)) {
+        // `export default () => {...}`: el nodo declaracion es la arrow
+        // function misma, no envuelta en una VariableDeclaration.
+        const declarationFilePath = declaration.getSourceFile().getFilePath();
+        const name = deriveNameFromFilePath(declarationFilePath);
+        if (HOOK_NAME_PATTERN.test(name)) continue;
+        if (returnsJsx(declaration)) {
+          found.push({
+            name,
+            filePath: declarationFilePath,
+            exportType: "anonymousDefaultArrow",
           });
         }
       }

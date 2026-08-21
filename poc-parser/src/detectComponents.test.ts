@@ -18,6 +18,7 @@ describe("detectComponents against sample-project", () => {
 
     expect(byName).toEqual({
       App: "functionDeclaration",
+      Badge: "anonymousDefaultArrow",
       Button: "functionDeclaration",
       Footer: "arrowFunction",
       Header: "arrowFunction",
@@ -91,6 +92,48 @@ describe("detectComponents edge cases", () => {
         return <div />;
       }
     `);
+    expect(result).toEqual([]);
+  });
+});
+
+// Paso 7: `export default function () {...}` / `export default () => {...}`
+// no tienen nombre propio; se deriva del archivo. Se usa un archivo real
+// (no /virtual.tsx) para poder controlar el nombre derivado.
+function detectFromNamedFile(fileName: string, source: string) {
+  const project = new Project({
+    useInMemoryFileSystem: true,
+    compilerOptions: { jsx: ts.JsxEmit.ReactJSX },
+  });
+  const file = project.createSourceFile(fileName, source);
+  return detectComponents(file);
+}
+
+describe("detectComponents anonymous default exports (Paso 7)", () => {
+  it("derives the name from the file for an anonymous default function", () => {
+    const result = detectFromNamedFile(
+      "/Modal.tsx",
+      `export default function () { return <div className="modal" />; }`,
+    );
+    expect(result).toEqual([
+      { name: "Modal", filePath: "/Modal.tsx", exportType: "anonymousDefaultFunction" },
+    ]);
+  });
+
+  it("derives the name from the file for an anonymous default arrow", () => {
+    const result = detectFromNamedFile(
+      "/Modal.tsx",
+      `export default () => <div className="modal" />;`,
+    );
+    expect(result).toEqual([
+      { name: "Modal", filePath: "/Modal.tsx", exportType: "anonymousDefaultArrow" },
+    ]);
+  });
+
+  it("still ignores an anonymous default export whose derived name looks like a hook", () => {
+    const result = detectFromNamedFile(
+      "/useModal.tsx",
+      `export default () => { if (Math.random() > 2) return <div />; return null; };`,
+    );
     expect(result).toEqual([]);
   });
 });

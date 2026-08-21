@@ -28,8 +28,9 @@ describe("extractImports against sample-project", () => {
 
     expect(graph).toEqual({
       App: ["Footer", "Header"],
+      Badge: [],
       Button: ["Icon"],
-      Footer: [],
+      Footer: ["Badge"],
       Header: ["Button"],
       Icon: [],
     });

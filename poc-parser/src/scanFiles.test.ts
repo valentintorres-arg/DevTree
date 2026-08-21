@@ -16,6 +16,7 @@ describe("scanFiles", () => {
     expect(files.sort()).toEqual(
       [
         "App.tsx",
+        "Badge.tsx",
         "Button.tsx",
         "Footer.tsx",
         "Header.tsx",
