@@ -96,7 +96,7 @@ sample-project/         # proyecto React/TS de juguete para probar
 - Anotar acá abajo, en "Casos pendientes", lo que no cubre esta v1
 
 ## Casos pendientes (no resolver ahora, solo anotar)
-- [ ] Lazy imports (`React.lazy(() => import(...))`)
+- [x] Lazy imports (`React.lazy(() => import(...))`) — ver Paso 9
 - [x] HOCs (`withAuth(Component)`) — ver Paso 8
 - [x] Barrel exports / re-exports desde `index.ts` — ver Paso 6
 - [x] Componentes exportados como `default` sin nombre explícito — ver Paso 7
@@ -260,6 +260,44 @@ no).
 - Tests: casos borde en memoria (HOC simple, HOC currificado, `export
   default` sin nombre, y el falso-positivo-evitado de "sin
   argumentos").
+
+### Paso 9 — Lazy imports (`React.lazy(() => import(...))`)
+
+**Problema:** `const LazySidebar = React.lazy(() => import('./Sidebar'));`
+usa un `import()` dinámico, que es un `CallExpression` (no un
+`ImportDeclaration`) — `getImportDeclarations()` no lo ve, así que
+`extractImports` no cuenta `Sidebar` como dependencia del archivo que
+lo usa.
+
+Verificado con un script exploratorio: un `import('./Foo')` dinámico
+es un `CallExpression` cuyo `getExpression()` tiene
+`SyntaxKind.ImportKeyword`; su primer argumento (el string literal del
+specifier) resuelve, vía `arg.getSymbol()`, a un símbolo cuya
+declaración **es directamente el `SourceFile`** importado — igual de
+confiable que `getModuleSpecifierSourceFile()` para imports estáticos,
+sin resolver rutas a mano.
+
+**Cambios:**
+- `extractImports.ts`: nueva función `getDynamicallyImportedFiles`
+  que busca todos los `CallExpression` del archivo con
+  `expression.getKind() === SyntaxKind.ImportKeyword`, resuelve el
+  primer argumento a su `SourceFile` vía el símbolo, y descarta
+  `node_modules` (mismo filtro que los imports estáticos). Su
+  resultado se combina con `getLocalImportedFiles` antes de armar
+  `importedFilePaths`.
+- No hace falta tocar `detectComponents.ts`: `const LazySidebar =
+  React.lazy(...)` no matchea ninguna rama existente (su initializer
+  es un `CallExpression` cuyo único argumento es una `ArrowFunction`,
+  no un `Identifier` PascalCase, así que tampoco dispara la heurística
+  de HOC del Paso 8) — y no hace falta que la dispare: el componente
+  real (`Sidebar`) ya existe como su propia entrada detectada en su
+  archivo; lo único que faltaba era la arista de dependencia hacia él.
+- Fixture: agregar un componente nuevo en `sample-project` consumido
+  únicamente vía `React.lazy(() => import(...))` desde otro
+  componente, para probarlo end-to-end en el `graph.json` real.
+- Tests: casos borde en memoria (lazy import simple, y que un
+  `import()` dinámico a un archivo sin componentes no aporte
+  dependencias, igual que un import estático).
 
 ## Criterio de éxito del POC
 Correr un solo comando (`npm run scan` o similar) sobre `sample-project/`
