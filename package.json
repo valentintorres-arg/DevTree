@@ -6,11 +6,14 @@
   "packageManager": "pnpm@10.34.5",
   "scripts": {
     "prepare": "husky",
-    "lint": "eslint poc-parser/src",
+    "lint": "eslint poc-parser/src ui/src",
     "format": "prettier --write ."
   },
   "lint-staged": {
     "poc-parser/src/**/*.ts": [
+      "eslint --fix"
+    ],
+    "ui/src/**/*.{ts,tsx}": [
       "eslint --fix"
     ],
     "**/*.{ts,tsx,js,json,md}": [
@@ -20,6 +23,8 @@
   "devDependencies": {
     "eslint": "^10.9.0",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.4",
     "husky": "^9.1.7",
     "lint-staged": "^17.3.0",
     "prettier": "^3.9.6",

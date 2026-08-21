@@ -1,0 +1,58 @@
+{
+  "components": [
+    {
+      "id": "App",
+      "filePath": "src/App.tsx",
+      "exportType": "functionDeclaration",
+      "dependencies": ["Footer", "Header", "ProtectedPage", "Sidebar"]
+    },
+    {
+      "id": "Badge",
+      "filePath": "src/components/Badge.tsx",
+      "exportType": "anonymousDefaultArrow",
+      "dependencies": []
+    },
+    {
+      "id": "Button",
+      "filePath": "src/components/Button.tsx",
+      "exportType": "functionDeclaration",
+      "dependencies": ["Icon"]
+    },
+    {
+      "id": "Footer",
+      "filePath": "src/components/Footer.tsx",
+      "exportType": "arrowFunction",
+      "dependencies": ["Badge"]
+    },
+    {
+      "id": "Header",
+      "filePath": "src/components/Header.tsx",
+      "exportType": "arrowFunction",
+      "dependencies": ["Button"]
+    },
+    {
+      "id": "Icon",
+      "filePath": "src/components/Icon.tsx",
+      "exportType": "arrowFunction",
+      "dependencies": []
+    },
+    {
+      "id": "Page",
+      "filePath": "src/components/Page.tsx",
+      "exportType": "functionDeclaration",
+      "dependencies": []
+    },
+    {
+      "id": "ProtectedPage",
+      "filePath": "src/components/ProtectedPage.tsx",
+      "exportType": "hocWrapped",
+      "dependencies": ["Page"]
+    },
+    {
+      "id": "Sidebar",
+      "filePath": "src/components/Sidebar.tsx",
+      "exportType": "functionDeclaration",
+      "dependencies": []
+    }
+  ]
+}

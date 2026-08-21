@@ -93,7 +93,7 @@ ui/
 ## Casos pendientes (no resolver ahora, solo anotar)
 
 - [ ] Sincronizar `graph.json` automáticamente después de `pnpm run
-  scan` (por ahora es una copia manual)
+scan` (por ahora es una copia manual)
 - [ ] Servir el grafo de un proyecto target arbitrario, no solo
       `sample-project`
 - [ ] Click en un nodo para ver su `filePath` completo / abrir el

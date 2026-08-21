@@ -22,7 +22,7 @@ jobs:
       - name: Install root tooling deps
         run: pnpm install --frozen-lockfile
 
-      - name: Lint (poc-parser/src)
+      - name: Lint (poc-parser/src, ui/src)
         run: pnpm run lint
 
       - name: Format check
@@ -38,4 +38,12 @@ jobs:
 
       - name: Build poc-parser
         working-directory: poc-parser
+        run: pnpm run build
+
+      - name: Install ui deps
+        working-directory: ui
+        run: pnpm install --frozen-lockfile
+
+      - name: Build ui (includes tsc typecheck)
+        working-directory: ui
         run: pnpm run build

@@ -1,0 +1,33 @@
+.component-node {
+  min-width: 160px;
+  padding: 0.5rem 0.85rem;
+  border-radius: 8px;
+  border: 1.5px solid #dcdce6;
+  background: #ffffff;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  text-align: center;
+}
+
+.component-node__name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #14151d;
+}
+
+.component-node__kind {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.02em;
+  margin-top: 0.15rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .component-node {
+    background: #181a26;
+    border-color: #2d2f42;
+  }
+
+  .component-node__name {
+    color: #e9e9f2;
+  }
+}

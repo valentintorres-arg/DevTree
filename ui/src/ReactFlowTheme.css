@@ -1,0 +1,20 @@
+/* @xyflow/react's Controls/MiniMap panels hardcode a white background
+   but not an explicit icon/text color. With `color-scheme: light dark`
+   set on :root (index.css, so the empty canvas matches the OS theme),
+   Chrome's dark-mode UA styling turns native <button> text/icon color
+   white by default — invisible against the panel's white background.
+   Pin these two panels to an explicit light appearance regardless of
+   color-scheme, since they're chrome, not canvas content. */
+.react-flow__controls-button {
+  background-color: #ffffff;
+  color: #222;
+  border-bottom-color: #eee;
+}
+
+.react-flow__controls-button:hover {
+  background-color: #f4f4f4;
+}
+
+.react-flow__minimap {
+  background-color: #f6f6fb;
+}
