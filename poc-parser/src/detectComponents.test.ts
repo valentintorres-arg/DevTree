@@ -25,6 +25,7 @@ describe("detectComponents against sample-project", () => {
       Icon: "arrowFunction",
       Page: "functionDeclaration",
       ProtectedPage: "hocWrapped",
+      Sidebar: "functionDeclaration",
     });
   });
 

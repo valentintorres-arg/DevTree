@@ -23,6 +23,7 @@ describe("scanFiles", () => {
         "Icon.tsx",
         "Page.tsx",
         "ProtectedPage.tsx",
+        "Sidebar.tsx",
         "formatDate.ts",
         "index.ts",
         "index.tsx",

@@ -1,4 +1,4 @@
-import { Node, SourceFile } from "ts-morph";
+import { Node, SourceFile, SyntaxKind } from "ts-morph";
 import { DetectedComponent } from "./detectComponents";
 
 // Sigue la cadena de alias de un binding importado (import -> re-export
@@ -50,6 +50,27 @@ function getLocalImportedFiles(sourceFile: SourceFile): SourceFile[] {
   return localFiles;
 }
 
+// `React.lazy(() => import('./Sidebar'))` usa un import() dinamico, que es
+// un CallExpression (no un ImportDeclaration) y por eso invisible para
+// getLocalImportedFiles. El string literal del specifier resuelve, via su
+// simbolo, directamente al SourceFile importado (Paso 9) — igual de
+// confiable que getModuleSpecifierSourceFile() para imports estaticos.
+function getDynamicallyImportedFiles(sourceFile: SourceFile): SourceFile[] {
+  const files: SourceFile[] = [];
+
+  for (const call of sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression)) {
+    if (call.getExpression().getKind() !== SyntaxKind.ImportKeyword) continue;
+
+    const [specifier] = call.getArguments();
+    const targetFile = specifier?.getSymbol()?.getDeclarations().find(Node.isSourceFile);
+    if (targetFile && !targetFile.getFilePath().includes("/node_modules/")) {
+      files.push(targetFile);
+    }
+  }
+
+  return files;
+}
+
 // Dado un componente y el SourceFile donde vive, devuelve los nombres de
 // los otros componentes detectados (Paso 2) de los que depende, segun sus
 // imports locales. Un import que resuelve a un archivo sin componentes
@@ -60,7 +81,9 @@ export function extractImports(
   allComponents: DetectedComponent[],
 ): string[] {
   const importedFilePaths = new Set<string>(
-    getLocalImportedFiles(sourceFile).map((f) => f.getFilePath().toString()),
+    [...getLocalImportedFiles(sourceFile), ...getDynamicallyImportedFiles(sourceFile)].map((f) =>
+      f.getFilePath().toString(),
+    ),
   );
 
   const dependencyNames = allComponents

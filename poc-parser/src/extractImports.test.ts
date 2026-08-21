@@ -27,7 +27,7 @@ describe("extractImports against sample-project", () => {
     }
 
     expect(graph).toEqual({
-      App: ["Footer", "Header", "ProtectedPage"],
+      App: ["Footer", "Header", "ProtectedPage", "Sidebar"],
       Badge: [],
       Button: ["Icon"],
       Footer: ["Badge"],
@@ -35,6 +35,7 @@ describe("extractImports against sample-project", () => {
       Icon: [],
       Page: [],
       ProtectedPage: ["Page"],
+      Sidebar: [],
     });
   });
 
@@ -47,7 +48,7 @@ describe("extractImports against sample-project", () => {
     const app = allComponents.find((c) => c.name === "App")!;
 
     const deps = extractImports(app, appFile, allComponents).sort();
-    expect(deps).toEqual(["Footer", "Header", "ProtectedPage"]);
+    expect(deps).toEqual(["Footer", "Header", "ProtectedPage", "Sidebar"]);
   });
 });
 
@@ -163,5 +164,40 @@ describe("extractImports edge cases", () => {
 
     const deps = extractImports(button, buttonFile, [icon, button]);
     expect(deps).toEqual(["Icon"]);
+  });
+});
+
+describe("extractImports dynamic imports / React.lazy (Paso 9)", () => {
+  it("resolves a component behind React.lazy(() => import(...)) as a dependency", () => {
+    const project = buildProject({
+      "/Sidebar.tsx": `export function Sidebar() { return <aside />; }`,
+      "/App.tsx": `
+        import React from "react";
+        const LazySidebar = React.lazy(() => import("./Sidebar"));
+        export const App = () => <LazySidebar />;
+      `,
+    });
+    const sidebarFile = project.getSourceFileOrThrow("/Sidebar.tsx");
+    const appFile = project.getSourceFileOrThrow("/App.tsx");
+    const sidebar = detectComponents(sidebarFile)[0];
+    const app = detectComponents(appFile)[0];
+
+    const deps = extractImports(app, appFile, [sidebar, app]);
+    expect(deps).toEqual(["Sidebar"]);
+  });
+
+  it("does not report a dependency on a dynamically-imported non-component file", () => {
+    const project = buildProject({
+      "/format.ts": `export const format = (n: number) => n.toString();`,
+      "/App.tsx": `
+        const loadFormat = () => import("./format");
+        export const App = () => <div>{String(loadFormat)}</div>;
+      `,
+    });
+    const appFile = project.getSourceFileOrThrow("/App.tsx");
+    const app = detectComponents(appFile)[0];
+
+    const deps = extractImports(app, appFile, [app]);
+    expect(deps).toEqual([]);
   });
 });
