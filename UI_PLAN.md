@@ -80,8 +80,12 @@ ui/
 - Nodo custom de React Flow con badge de color por `exportType`
   (`functionDeclaration`, `arrowFunction`, `anonymousDefaultArrow`,
   `hocWrapped`), mismo esquema de colores que el artifact
-- Controles built-in de React Flow: pan, zoom, minimap, fit-view al
-  cargar
+- Controles built-in de React Flow: pan, zoom, fit-view al cargar.
+  **Actualizado:** el `<MiniMap>` built-in solo dibuja un rectángulo
+  por nodo, nunca las conexiones (limitación del componente, no un
+  prop que faltaba) — el usuario lo señaló directamente al verlo.
+  Reemplazado por `TreeMiniMap.tsx`, un SVG propio que dibuja tanto
+  nodos como aristas escalados al mismo layout de dagre (ver Fase 2)
 
 ### Paso UI-4 — Verificación end-to-end
 
@@ -162,13 +166,20 @@ REPO_STANDARDS.md Fase 2, sigue sin aplicar).
 
 - [ ] Generar el uso real en JSX (`<B />` dentro del render de A) —
       por ahora solo el import, no dónde se usa
-- [ ] Mover, renombrar o borrar componentes desde la UI
+- [ ] Mover o renombrar componentes desde la UI (borrar una conexión sí
+      quedó — ver Paso UI-10)
 - [ ] Deshacer (undo) de una escritura ya hecha en disco
 - [ ] Cualquier autenticación del endpoint (corre 100% local, en dev)
+- [ ] **Tensión sin resolver:** `sample-project` es a la vez la fixture
+      curada de los tests de `poc-parser` y el target real y mutable
+      de esta Fase 2 — usarla desde la UI (agregar/conectar) rompe los
+      tests golden de `poc-parser`, que hardcodean su forma original.
+      Pendiente: un target de UI separado de la fixture de tests, o
+      alguna otra forma de que no compitan.
 
 ### Pasos
 
-#### Paso UI-5 — Endpoint para crear un componente
+#### Paso UI-5 — Endpoint para crear un componente ✅
 
 - Plugin de Vite con `configureServer`: `POST /api/components` con
   `{ name: string }`, escribe el archivo stub bajo
@@ -177,26 +188,26 @@ REPO_STANDARDS.md Fase 2, sigue sin aplicar).
   sin `dependencies` todavía) para que el frontend pueda agregar el
   nodo sin esperar un re-scan
 
-#### Paso UI-6 — UI para crear un nodo
+#### Paso UI-6 — UI para crear un nodo ✅
 
 - Affordance en el canvas (ej. botón "+ Nuevo componente" o
   doble-click en área vacía) que pide el nombre, llama al endpoint, y
   agrega el nodo al estado de React Flow en la posición donde se pidió
 
-#### Paso UI-7 — Endpoint para conectar dos componentes
+#### Paso UI-7 — Endpoint para conectar dos componentes ✅
 
 - `POST /api/connections` con `{ fromId, toId }`: usa ts-morph para
   abrir el archivo de `fromId`, calcular la ruta relativa hacia
   `toId.filePath`, y agregar un `ImportDeclaration` si todavía no
   existe (idempotente — conectar dos veces no duplica el import)
 
-#### Paso UI-8 — UI para conectar
+#### Paso UI-8 — UI para conectar ✅
 
 - `onConnect` de React Flow llama al endpoint; si responde ok, agrega
   la edge visualmente. Si falla (ej. ya existe, o error de escritura),
   mostrar el error en vez de agregar la edge silenciosamente
 
-#### Paso UI-9 — Verificación end-to-end
+#### Paso UI-9 — Verificación end-to-end ✅
 
 - Desde la UI real: crear un componente nuevo, conectarlo a uno
   existente
@@ -205,6 +216,24 @@ REPO_STANDARDS.md Fase 2, sigue sin aplicar).
   incluye el componente nuevo y la dependencia — el mismo criterio de
   éxito que cualquier Paso anterior, pero disparado desde la UI en vez
   de escrito a mano
+- Verificado dos veces: con `curl` directo a ambos endpoints, y por el
+  usuario probando con su propio mouse (creó `Widget.tsx` y conectó
+  `Page -> Icon -> Widget` de verdad)
+
+#### Paso UI-10 — Eliminar una conexión (agregado, no estaba en el plan original)
+
+- Pedido explícito del usuario tras ver que no había forma de sacar
+  una conexión ya creada
+- `DELETE /api/connections` (mismo endpoint, otro método): saca el
+  named import; si el `ImportDeclaration` se queda sin ninguno (y sin
+  default/namespace import), lo borra entero — no deja un
+  `import "./ruta";` huérfano
+- UI: click en una edge la selecciona (`onSelectionChange`, no solo la
+  tecla Delete/Backspace — más robusto que depender del foco de
+  teclado tras un click) y aparece un botón "Eliminar" explícito
+- De paso: handles de conexión agrandados (10px, eran 6px) e
+  `interactionWidth: 32` en las edges — eran demasiado chicos para
+  acertar con precisión con el mouse
 
 ### Criterio de éxito de esta fase
 

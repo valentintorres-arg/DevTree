@@ -674,3 +674,106 @@ Leer esto primero al arrancar una sesion nueva (ver CLAUDE.md).
   `ui/`). Visualizador funcional contra el `graph.json` real, pendiente
   solo de mejoras de calidad de vida (sync automatico, targets
   arbitrarios, click-to-inspect).
+
+## 2026-08-21 (sesion 13)
+
+### Que se hizo
+- El usuario probo el viewer y pidio agregar/conectar componentes
+  reales desde la UI (no solo visualizar) — ver pregunta explicita y
+  respuesta ("Generates real code") documentada como Fase 2 en
+  `UI_PLAN.md` antes de implementar.
+- `vite-plugin-graph-editor.ts`: plugin de Vite (`configureServer`)
+  que agrega `POST /api/components` (escribe un stub de function
+  component real bajo `<targetRoot>/src/components/`) y
+  `POST`/`DELETE /api/connections` (inserta/saca un import real via
+  ts-morph, resolviendo la ruta relativa entre los dos `filePath`,
+  idempotente en ambos sentidos). Solo corre en dev.
+- `App.tsx`: nodes/edges mutables (`useNodesState`/`useEdgesState`).
+  "+ Nuevo componente" (prompt de nombre) y `onConnect` llaman a los
+  endpoints y actualizan el estado visual. Click en una edge + boton
+  "Eliminar" (via `onSelectionChange`, no solo la tecla Delete) llama
+  al `DELETE` y saca la edge.
+- **Problema real de usabilidad encontrado:** los handles de conexion
+  (6px por default) y el area de click de una edge eran demasiado
+  chicos para acertar con precision. Se investigo con clicks
+  automatizados via Chrome, pero las coordenadas de esa herramienta
+  resultaron mal calibradas en esta sesion (un click calculado para
+  caer exactamente sobre un nodo registro en `<html>` en vez del
+  elemento real) — no se pudo confiar en esa verificacion automatizada
+  para clicks precisos. Se confirmo la funcionalidad real de otra
+  forma: `curl` directo a ambos endpoints, y el usuario probando con
+  su propio mouse agrego un componente real (`Widget.tsx`) y lo
+  conecto (`Page -> Icon -> Widget`) exitosamente. Handles agrandados
+  (10px) e `interactionWidth: 32` en las edges de todas formas, para
+  mejorar la precision real con mouse.
+- El usuario reporto el `MiniMap` de React Flow "blanco" tres veces
+  seguidas. Primero se penso que era cache/HMR viejo (no era). Un
+  screenshot que mando el usuario mostro el problema real: los nodos
+  SI se ven (rectangulos indigo, el fix de contraste de la sesion
+  anterior funciono), pero el panel del MiniMap es claro por default y
+  queda como una caja blanca en la esquina de un canvas oscuro —
+  Controls y MiniMap temizados a oscuro (mismo estilo de card que los
+  nodos).
+- El usuario senalo ademas que el MiniMap "no muestra las conexiones,
+  solo bloques de color" — esto SI es una limitacion real y conocida
+  del componente `<MiniMap>` de React Flow (dibuja nodos, nunca
+  edges), no algo ajustable con un prop. Presentado como decision
+  (mantenerlo, sacarlo, o construir uno propio) — el usuario eligio
+  reemplazarlo. `TreeMiniMap.tsx`: SVG hecho a mano que escala el
+  mismo `nodes`/`edges` (con el layout de dagre ya calculado) a un
+  viewBox chico, dibujando un `<rect>` por nodo y una `<line>` por
+  dependencia. Click en un nodo centra la vista ahi
+  (`useReactFlow().setCenter`). Verificado con las coordenadas reales
+  del SVG (no visualmente — el screenshot tool de Claude-in-Chrome
+  dejo de funcionar a mitad de sesion, error de CDP no atribuible a la
+  app): la jerarquia coincide exactamente con el canvas principal.
+- **Tension real encontrada:** `sample-project` cumple doble función —
+  fixture curada para los tests de `poc-parser` Y target mutable real
+  de la UI. El usuario probando la Fase 2 con su propio mouse agrego
+  un componente real (`Widget.tsx`) y dos conexiones reales, lo cual
+  rompio los tests golden de `poc-parser` (hardcodean 9 componentes).
+  Presentado como decision al usuario (actualizar los tests para
+  reflejar el nuevo estado real, vs. revertir `sample-project` a la
+  fixture limpia) — eligio revertir. `poc-parser` vuelve a 32/32 tests
+  verdes.
+
+### Que quedo pendiente
+- De `UI_PLAN.md` Fase 2 (anotado, no implementado en esta sesion):
+  generar el uso real en JSX (`<B />`) al conectar, no solo el import;
+  mover/renombrar/borrar componentes; deshacer una escritura ya hecha.
+- Nueva tension a resolver en algun momento (no urgente): si
+  `sample-project` sigue siendo tanto la fixture de tests de
+  `poc-parser` como el target real de edicion de la UI, cualquier
+  sesion futura de "probar la UI agregando componentes" va a volver a
+  romper esos tests golden. Posible solucion futura: un target de UI
+  separado de la fixture de tests (anotado, no resuelto).
+- El screenshot tool de Claude-in-Chrome empezo a fallar (error de CDP
+  `params.clip.scale`) a mitad de sesion — no se investigo la causa
+  (parece del lado de la extension/entorno, no de la app). La
+  verificacion visual final de esta sesion se hizo leyendo geometria
+  real del SVG via JS en vez de screenshots.
+
+### Decisiones tomadas
+- No confiar en clicks automatizados de Claude-in-Chrome como fuente
+  de verdad cuando las coordenadas no coinciden con lo que
+  `elementFromPoint`/`getBoundingClientRect` reportan — se prefirio
+  verificacion directa (`curl` a los endpoints, geometria real del
+  SVG) y la confirmacion independiente del usuario con su propio mouse
+  antes que seguir insistiendo con una herramienta de la que no se
+  podia confiar el calibrado en esta sesion.
+- Ante un reporte repetido del usuario que contradice una verificacion
+  propia ("sigue blanco"), pedir una imagen concreta en vez de seguir
+  reafirmando la propia verificacion — la imagen mostro que el
+  problema real (panel claro en canvas oscuro) era distinto de lo que
+  se habia diagnosticado y arreglado (contraste de los nodos).
+- Preguntar antes de decidir el destino de cambios reales hechos por
+  el usuario en `sample-project` (mergear como nueva fixture vs.
+  revertir) en vez de asumir cualquiera de las dos — son datos reales
+  de una persona, no un artefacto de testing propio para descartar
+  libremente.
+
+### Estado del repo al cerrar esta sesion
+- main al dia con origin/main, CI verde. Fase 2 de UI_PLAN.md (agregar
+  y conectar componentes reales, con delete) implementada y verificada
+  end-to-end. `sample-project` de vuelta a su fixture limpia de 9
+  componentes, `poc-parser` en 32/32 tests.
