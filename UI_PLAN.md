@@ -106,3 +106,110 @@ Correr `pnpm run dev` en `ui/` y ver, en un browser real, el grafo de
 `sample-project` (9 componentes) renderizado con pan/zoom y coloreado
 por tipo de export, a partir del `graph.json` real que produce
 `poc-parser`.
+
+---
+
+## Fase 2 — Edición real: agregar componentes y conectarlos
+
+Pedido explícito del usuario tras ver el viewer: poder agregar un
+componente nuevo y conectarlo desde la UI. **Esto revierte una
+decisión explícita de este mismo documento** ("Este POC NO incluye:
+Backend/API... Edición del grafo que modifique código real") — un
+browser no puede escribir al filesystem por su cuenta, así que hace
+falta un servidor. Se documenta el cambio acá en vez de editar la
+sección de arriba, para que quede registro de por qué se agregó.
+
+### Objetivo
+
+Que agregar un nodo en el canvas cree un archivo de componente real
+en el proyecto target, y que conectar dos nodos (arrastrar de un
+handle a otro) inserte un import real en el archivo del componente
+origen — de forma que, al volver a correr `pnpm run scan` en
+`poc-parser`, el componente nuevo y su dependencia aparezcan en el
+`graph.json` real (el mismo criterio de verificación que se usó en
+todo Paso anterior: no basta con que se vea bien en la UI, tiene que
+sobrevivir un re-scan real).
+
+### Por qué un plugin de Vite y no un servidor aparte
+
+En vez de correr un backend en un proceso separado, un plugin de Vite
+(`configureServer`) agrega un par de endpoints sobre el mismo proceso
+de `pnpm run dev` — un solo comando, consistente con como ya funciona
+el viewer. Esto **solo corre en dev** (`vite build` no incluye
+middlewares de plugins), lo cual es aceptable: es una herramienta
+interna para un solo desarrollador, no algo que se despliega (ver
+REPO_STANDARDS.md Fase 2, sigue sin aplicar).
+
+### Alcance
+
+- **Crear componente:** UI para pedir un nombre -> escribe
+  `<targetRoot>/src/components/<Name>.tsx` con un stub de function
+  component (`export function Name() { return <div>Name</div>; }`) —
+  una forma que `detectComponents` ya reconoce, para que el
+  round-trip con `pnpm run scan` funcione sin casos especiales.
+- **Conectar componentes:** arrastrar de un handle a otro
+  (`onConnect` de React Flow) -> inserta
+  `import { B } from './ruta/relativa'` en el archivo de A, vía
+  ts-morph (no regex, mismo criterio que el resto del proyecto),
+  resolviendo la ruta relativa real entre los dos `filePath`.
+- El grafo en pantalla se actualiza al toque (nodo/edge aparecen
+  apenas el server confirma haber escrito), pero la fuente de verdad
+  sigue siendo el filesystem + un re-scan de `poc-parser`.
+- Target project configurable via una constante/env var del plugin de
+  Vite; por default sigue siendo `sample-project`.
+
+### Fuera de alcance (anotar, no ahora)
+
+- [ ] Generar el uso real en JSX (`<B />` dentro del render de A) —
+      por ahora solo el import, no dónde se usa
+- [ ] Mover, renombrar o borrar componentes desde la UI
+- [ ] Deshacer (undo) de una escritura ya hecha en disco
+- [ ] Cualquier autenticación del endpoint (corre 100% local, en dev)
+
+### Pasos
+
+#### Paso UI-5 — Endpoint para crear un componente
+
+- Plugin de Vite con `configureServer`: `POST /api/components` con
+  `{ name: string }`, escribe el archivo stub bajo
+  `<targetRoot>/src/components/`
+- Devuelve `{ id, filePath }` (mismo shape que un `GraphComponent`,
+  sin `dependencies` todavía) para que el frontend pueda agregar el
+  nodo sin esperar un re-scan
+
+#### Paso UI-6 — UI para crear un nodo
+
+- Affordance en el canvas (ej. botón "+ Nuevo componente" o
+  doble-click en área vacía) que pide el nombre, llama al endpoint, y
+  agrega el nodo al estado de React Flow en la posición donde se pidió
+
+#### Paso UI-7 — Endpoint para conectar dos componentes
+
+- `POST /api/connections` con `{ fromId, toId }`: usa ts-morph para
+  abrir el archivo de `fromId`, calcular la ruta relativa hacia
+  `toId.filePath`, y agregar un `ImportDeclaration` si todavía no
+  existe (idempotente — conectar dos veces no duplica el import)
+
+#### Paso UI-8 — UI para conectar
+
+- `onConnect` de React Flow llama al endpoint; si responde ok, agrega
+  la edge visualmente. Si falla (ej. ya existe, o error de escritura),
+  mostrar el error en vez de agregar la edge silenciosamente
+
+#### Paso UI-9 — Verificación end-to-end
+
+- Desde la UI real: crear un componente nuevo, conectarlo a uno
+  existente
+- Correr `pnpm run scan` de nuevo en `poc-parser` (proceso aparte,
+  sin reiniciar el viewer) y confirmar que el `graph.json` real
+  incluye el componente nuevo y la dependencia — el mismo criterio de
+  éxito que cualquier Paso anterior, pero disparado desde la UI en vez
+  de escrito a mano
+
+### Criterio de éxito de esta fase
+
+Desde el browser: crear un componente, conectarlo a `Page` (o
+cualquier otro), y sin tocar el filesystem a mano, ver que
+`sample-project/src/components/` tiene el archivo nuevo con el import
+agregado — y que un `pnpm run scan` posterior en `poc-parser` lo
+confirma en el `graph.json`.
