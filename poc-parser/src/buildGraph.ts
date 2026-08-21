@@ -1,9 +1,10 @@
 import path from "path";
-import { DetectedComponent } from "./detectComponents";
+import { ComponentExportType, DetectedComponent } from "./detectComponents";
 
 export interface GraphComponent {
   id: string;
   filePath: string;
+  exportType: ComponentExportType;
   dependencies: string[];
 }
 
@@ -24,7 +25,10 @@ function toPortableRelativePath(projectRoot: string, filePath: string): string {
 
 // Combina componentes (Paso 2) y sus dependencias locales resueltas
 // (Paso 3) en la estructura final { components: [{ id, filePath,
-// dependencies }] } descripta en PLAN.md.
+// exportType, dependencies }] } descripta en PLAN.md. exportType se
+// expone en el grafo (no solo en el log de index.ts) porque la UI
+// (ver UI_PLAN.md, Paso UI-3) lo necesita para colorear cada nodo
+// segun como se detecto el componente.
 export function buildGraph(
   entries: ComponentWithDependencies[],
   projectRoot: string,
@@ -33,6 +37,7 @@ export function buildGraph(
     components: entries.map(({ component, dependencies }) => ({
       id: component.name,
       filePath: toPortableRelativePath(projectRoot, component.filePath),
+      exportType: component.exportType,
       dependencies,
     })),
   };

@@ -88,6 +88,7 @@ sample-project/         # proyecto React/TS de juguete para probar
     {
       "id": "Button",
       "filePath": "src/components/Button.tsx",
+      "exportType": "functionDeclaration",
       "dependencies": ["Icon"]
     }
   ]

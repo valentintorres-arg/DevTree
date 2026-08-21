@@ -9,7 +9,7 @@ const sampleProjectRoot = path.resolve(__dirname, "../../sample-project");
 const sampleProjectTsConfig = path.join(sampleProjectRoot, "tsconfig.json");
 
 describe("buildGraph", () => {
-  it("produces the {components: [{id, filePath, dependencies}]} shape from PLAN.md", () => {
+  it("produces the {components: [{id, filePath, exportType, dependencies}]} shape from PLAN.md", () => {
     // Mismo pipeline que index.ts: dedupear globalmente, ya que el barrel
     // (components/index.ts) re-descubre los mismos componentes.
     const files = scanFiles(sampleProjectTsConfig);
@@ -27,6 +27,7 @@ describe("buildGraph", () => {
         {
           id: "Button",
           filePath: "src/components/Button.tsx",
+          exportType: "functionDeclaration",
           dependencies: ["Icon"],
         },
       ]),
