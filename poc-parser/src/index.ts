@@ -1,13 +1,16 @@
+import fs from "fs";
 import path from "path";
 import { scanFiles } from "./scanFiles";
 import { detectComponents } from "./detectComponents";
 import { extractImports } from "./extractImports";
+import { buildGraph } from "./buildGraph";
 
-// Entry point del CLI. Por ahora (Pasos 1-3) orquesta el escaneo de
-// archivos, la deteccion de componentes y la extraccion de sus
-// dependencias locales; el paso siguiente (armar y escribir el grafo) se
-// va a enganchar aca.
-const targetTsConfig = path.resolve(__dirname, "../../sample-project/tsconfig.json");
+// Entry point del CLI: escanea el proyecto target, detecta componentes,
+// resuelve sus dependencias locales y escribe el grafo resultante en
+// output/graph.json (ver PLAN.md, Pasos 1-4).
+const targetProjectRoot = path.resolve(__dirname, "../../sample-project");
+const targetTsConfig = path.join(targetProjectRoot, "tsconfig.json");
+const outputPath = path.resolve(__dirname, "../output/graph.json");
 
 const sourceFiles = scanFiles(targetTsConfig);
 
@@ -29,10 +32,21 @@ for (const component of allComponents) {
   );
 }
 
+const entries = componentsByFile.flatMap(({ file, components }) =>
+  components.map((component) => ({
+    component,
+    dependencies: extractImports(component, file, allComponents),
+  })),
+);
+
 console.log(`\nDependencias locales:`);
-for (const { file, components } of componentsByFile) {
-  for (const component of components) {
-    const dependencies = extractImports(component, file, allComponents);
-    console.log(` - ${component.name} -> [${dependencies.join(", ")}]`);
-  }
+for (const { component, dependencies } of entries) {
+  console.log(` - ${component.name} -> [${dependencies.join(", ")}]`);
 }
+
+const graph = buildGraph(entries, targetProjectRoot);
+
+fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+fs.writeFileSync(outputPath, JSON.stringify(graph, null, 2) + "\n", "utf-8");
+
+console.log(`\nGrafo escrito en ${path.relative(process.cwd(), outputPath)}`);
