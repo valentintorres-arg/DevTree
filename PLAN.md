@@ -100,20 +100,7 @@ sample-project/         # proyecto React/TS de juguete para probar
 - [x] HOCs (`withAuth(Component)`) — ver Paso 8
 - [x] Barrel exports / re-exports desde `index.ts` — ver Paso 6
 - [x] Componentes exportados como `default` sin nombre explícito — ver Paso 7
-- [ ] **Bug descubierto en Paso 8, no resuelto:** `returnsJsx` (Paso 2)
-  da falso positivo cuando una función devuelve *otra función* que a su
-  vez contiene JSX (el patrón típico de una factory de HOC:
-  `function withAuth(Component) { return function Wrapped(props) {
-  return <Component {...props} />; }; }`) — `withAuth` se detecta
-  incorrectamente como componente, porque `expressionHasJsx` busca JSX
-  en *todos* los descendientes del `return` sin respetar el límite de
-  función anidada que sí respeta el resto de `returnsJsx`. Por eso el
-  fixture de Paso 8 (`ProtectedPage.tsx`) importa `withAuth` desde un
-  paquete externo no resoluble en vez de definirlo como archivo local
-  del proyecto — evita el bug sin arreglarlo. Fix propuesto (no
-  aplicado): que la búsqueda de JSX dentro de la expresión de un
-  `return` respete el mismo límite de "no bajar a una función anidada"
-  que ya usa el recorrido del cuerpo en bloque.
+- [x] Bug descubierto en Paso 8 (`returnsJsx` con factory de HOC) — ver Paso 10
 
 ### Paso 6 — Barrel exports / re-exports desde `index.ts`
 
@@ -298,6 +285,52 @@ sin resolver rutas a mano.
 - Tests: casos borde en memoria (lazy import simple, y que un
   `import()` dinámico a un archivo sin componentes no aporte
   dependencias, igual que un import estático).
+
+### Paso 10 — Fix: `returnsJsx` falso positivo con factory de HOC
+
+**Problema** (encontrado en Paso 8): `expressionHasJsx` busca JSX en
+*todos* los descendientes de la expresión de un `return`, sin límite.
+Cuando esa expresión es directamente **otra función**
+(`return function Wrapped(props) { return <Component {...props}/>; };`,
+el patrón típico de una factory de HOC), el chequeo encuentra el JSX
+que hay *dentro* de esa función anidada y concluye erróneamente que la
+función exterior (`withAuth`) devuelve JSX — cuando en realidad lo que
+devuelve es una función, no JSX.
+
+**Por qué el fix originalmente propuesto (Paso 8) era incorrecto:**
+la idea inicial era "que la búsqueda de JSX respete el límite de no
+bajar a ninguna función anidada en todos los casos". Eso rompe un
+patrón real y ya usado indirectamente: `return items.map(item =>
+<li key={item.id}>{item.name}</li>);` (retornar un array de JSX sin
+wrapper) — ahí el callback de `.map` **sí** debe inspeccionarse,
+porque el valor devuelto (el array) contiene JSX generado por ese
+callback; no es un caso de "devuelvo otra función como valor".
+
+**Fix correcto, más angosto:** el valor de un `return` (o el cuerpo de
+una arrow con retorno implícito) sólo se descarta como "no es JSX" si
+la expresión devuelta **es ella misma, directamente**, un
+`ArrowFunction`/`FunctionExpression` (`NESTED_FUNCTION_KINDS`) — ese
+caso puntual (devolver una función) nunca cuenta como JSX,
+independientemente de lo que esa función interna devuelva. Para
+cualquier otro tipo de expresión (JSX directo, `ParenthesizedExpression`,
+`CallExpression` como `.map(...)`, etc.) se seguye usando la búsqueda
+existente sin límite (`expressionHasJsx`), sin cambios.
+
+**Cambios:**
+- `detectComponents.ts`: nueva función `isJsxReturnValue(expr)` =
+  `NESTED_FUNCTION_KINDS.has(expr.getKind()) ? false :
+  expressionHasJsx(expr)`, usada en ambos puntos donde `returnsJsx`
+  invocaba `expressionHasJsx` directamente (el cuerpo-expresión de una
+  arrow, y la expresión de cada `return` en un cuerpo en bloque).
+- Fixture: `ProtectedPage.tsx` deja de importar `withAuth` de un
+  paquete externo ficticio (workaround del Paso 8) y pasa a usar un
+  `withAuth` real y local (`hocs/withAuth.tsx`, factory clásica de
+  HOC) — valida que el fix realmente evita el falso positivo end-to-end
+  contra el `graph.json` real (mismo grafo que antes, sin que
+  `withAuth` aparezca como componente).
+- Tests: caso borde de regresión para el patrón `.map()` (confirmando
+  que sigue detectándose), y caso borde para la factory de HOC
+  (confirmando que ya NO se detecta como componente).
 
 ## Criterio de éxito del POC
 Correr un solo comando (`npm run scan` o similar) sobre `sample-project/`
