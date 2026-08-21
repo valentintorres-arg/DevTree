@@ -316,5 +316,54 @@ Leer esto primero al arrancar una sesion nueva (ver CLAUDE.md).
   via `getSymbol()`.
 
 ### Estado del repo al cerrar esta sesion
-- Branch `feature/lazy-imports` con 2 commits (plan + implementacion),
-  pendiente de confirmacion del usuario para mergear y pushear.
+- Branch `feature/lazy-imports` mergeada (ff) a main y pusheada, junto
+  con la branch, tras confirmacion del usuario.
+
+## 2026-08-21 (sesion 7)
+
+### Que se hizo
+- Paso 10 (bug fix) planificado en PLAN.md e implementado: el falso
+  positivo de `returnsJsx` con factories de HOC descubierto en el
+  Paso 8 (el usuario dijo "CONTINUE" sin especificar tarea; se eligio
+  este bug ya diagnosticado en vez de arrancar Fase 0 de
+  REPO_STANDARDS.md, por ser trabajo mas acotado y quedar pendiente de
+  la sesion anterior).
+- Se revisitó el fix originalmente esbozado en el Paso 8 ("que la
+  búsqueda de JSX respete el límite de no bajar a ninguna función
+  anidada en todos los casos") y se descartó por incorrecto: rompe
+  `items.map(item => <li/>)` (retornar un array de JSX sin wrapper),
+  donde el callback de `.map` sí debe inspeccionarse. Verificado con
+  un script exploratorio antes y despues del fix.
+- `detectComponents.ts`: nueva `isJsxReturnValue(expr)`, mas angosta —
+  descarta el valor de un `return` como "es JSX" solo cuando la
+  expresión devuelta ES directamente otra función
+  (`ArrowFunction`/`FunctionExpression`), no cuando simplemente la
+  contiene. Reemplaza las dos llamadas directas a `expressionHasJsx`
+  dentro de `returnsJsx` (arrow con retorno implícito, y cada `return`
+  del cuerpo en bloque); `expressionHasJsx` en sí no cambió.
+- Fixture: `ProtectedPage.tsx` dejó de importar `withAuth` de un
+  paquete externo ficticio (workaround del Paso 8) y pasa a usar un
+  `withAuth` real y local (`hocs/withAuth.tsx`, factory clásica de
+  HOC) — validado end-to-end: mismo grafo de 9 componentes que antes,
+  sin que `withAuth` aparezca como componente fantasma.
+- Tests: 3 casos nuevos (factory de HOC en block-body, factory de HOC
+  en cadena de arrows, regresión de `items.map` que debe seguir
+  detectándose). 32 tests totales, todos pasando. `npm run build` y
+  `npm run scan` verificados manualmente.
+
+### Que quedo pendiente
+- No quedan casos pendientes ni bugs conocidos anotados en PLAN.md.
+- REPO_STANDARDS.md Fase 0 (Husky, ESLint+Prettier, README mínimo,
+  Dependabot) sigue sin implementar — único trabajo de repo-hygiene
+  restante mencionado hasta ahora.
+
+### Decisiones tomadas
+- Al corregir un bug, revisitar si el fix originalmente esbozado sigue
+  siendo el correcto en vez de aplicarlo a ciegas — encontrar un caso
+  real que rompería (`items.map`) antes de escribir el fix definitivo,
+  no después.
+
+### Estado del repo al cerrar esta sesion
+- Branch `fix/returns-jsx-hoc-false-positive` con 2 commits (plan +
+  implementacion), pendiente de confirmacion del usuario para mergear
+  y pushear.
