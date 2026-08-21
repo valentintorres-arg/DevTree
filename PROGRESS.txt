@@ -364,6 +364,68 @@ Leer esto primero al arrancar una sesion nueva (ver CLAUDE.md).
   no después.
 
 ### Estado del repo al cerrar esta sesion
-- Branch `fix/returns-jsx-hoc-false-positive` con 2 commits (plan +
-  implementacion), pendiente de confirmacion del usuario para mergear
-  y pushear.
+- Branch `fix/returns-jsx-hoc-false-positive` mergeada (ff) a main y
+  pusheada, junto con la branch, tras confirmacion del usuario.
+
+## 2026-08-21 (sesion 8)
+
+### Que se hizo
+- REPO_STANDARDS.md Fase 0 completada (pedido explicito del usuario:
+  "yes, lets move there next"), salvo `.env.example` (no aplica
+  todavia, no hay variables de entorno reales).
+- `package.json` en la raiz (privado, solo tooling — no hay codigo
+  propio ahi): ESLint (flat config, `typescript-eslint` recommended +
+  `eslint-config-prettier`), Prettier, Husky, lint-staged.
+- Alcance de ESLint acotado a `poc-parser/src` (el codigo mantenido):
+  `sample-project` es fixture sintetica que a proposito ejercita casos
+  raros (HOCs, default exports anonimos) y no se lintea.
+  `eslint-plugin-react`/`eslint-plugin-react-hooks` quedan para cuando
+  exista codigo React real (visualizacion, ver PLAN.md).
+- Husky (`.husky/pre-commit`) corre `lint-staged` en cada commit:
+  `eslint --fix` sobre `poc-parser/src/**/*.ts`, `prettier --write`
+  sobre `**/*.{ts,tsx,js,json,md}` en todo el repo. Verificado
+  manualmente (stage de un archivo mal formateado + `npx lint-staged`)
+  antes de confiar en el hook real, y confirmado de nuevo en el primer
+  commit real (el hook corrigio formato automaticamente).
+- Prettier aplicado una vez sobre el repo existente (CLAUDE.md,
+  PLAN.md, README.md, REPO_STANDARDS.md, algunos `.ts` que superaban
+  el printWidth configurado) — cambios triviales, revisados a mano
+  antes de aceptarlos (blank lines alrededor de headings, colapso de
+  lineas ya dentro de 100 columnas), sin tocar contenido.
+- README.md minimo viable: descripcion, stack, estructura del repo,
+  instalacion/uso (raiz + poc-parser), estado actual.
+- `.github/dependabot.yml`: chequeo semanal de npm para dos
+  ecosistemas (raiz y `poc-parser`, cada uno con su propio
+  package-lock.json).
+- Checklist de Fase 0 en REPO_STANDARDS.md actualizado.
+
+### Que quedo pendiente
+- `.env.example` (Fase 0): no aplica todavia, no hay variables de
+  entorno reales en el proyecto.
+- Fase 1 en adelante de REPO_STANDARDS.md (CI con GitHub Actions,
+  branch protection, CD, Docker, etc.) sigue sin implementar — no
+  pedido todavia.
+- **Observacion, no resuelta:** `npm test` en `poc-parser` da timeout
+  intermitente en el primer test de `detectComponents.test.ts`
+  (`Test timed out in 5000ms`), visto varias veces esta sesion y en
+  sesiones anteriores; reintentar el mismo comando siempre pasa en el
+  segundo intento. Parece el costo de arranque en frio de ts-morph
+  cargando el `tsconfig.json` de `sample-project` la primera vez,
+  variable segun carga del sistema. No se investigo a fondo ni se
+  aumento el `testTimeout` de vitest — anotar para una sesion futura
+  si se vuelve molesto.
+
+### Decisiones tomadas
+- ESLint acotado a `poc-parser/src`, no a todo el repo — lintear
+  `sample-project` (fixture que a proposito tiene shapes "raros") solo
+  generaria ruido sin valor real.
+- Antes de cada cambio de formato masivo (Prettier sobre archivos
+  existentes), revisar el diff a mano en vez de aceptarlo a ciegas,
+  para confirmar que son cambios triviales de estilo y no reflows que
+  distorsionen contenido.
+
+### Estado del repo al cerrar esta sesion
+- Branch `feature/repo-standards-fase0` con 4 commits (ESLint+Prettier+
+  Husky/lint-staged, README, Dependabot, y este registro en
+  PROGRESS.txt), pendiente de confirmacion del usuario para mergear y
+  pushear.
