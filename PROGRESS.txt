@@ -96,3 +96,61 @@ Leer esto primero al arrancar una sesion nueva (ver CLAUDE.md).
 ### Estado del repo al cerrar esta sesion
 - main al dia con origin/main, working tree limpio (sin cambios de
   codigo, solo validacion). Paso 5 del plan queda cerrado.
+
+## 2026-08-21 (sesion 3)
+
+### Que se hizo
+- Paso 6 planificado en PLAN.md y luego implementado: resolver
+  componentes re-exportados por un barrel (`index.ts`), uno de los
+  "casos pendientes" anotados en Paso 5.
+- Bug corregido en `detectComponents.ts`: usaba el filePath del
+  `sourceFile` escaneado para toda declaracion devuelta por
+  `getExportedDeclarations()`, aunque esta ya resuelve a traves de
+  re-exports hasta la declaracion real en otro archivo. Ahora usa
+  `declaration.getSourceFile()`. El dedupe existente (por archivo+
+  nombre) se extrajo a `dedupeComponents()` (exportada), necesario
+  ahora tambien entre archivos distintos.
+- `extractImports.ts`: en vez de resolver el import solo hasta el
+  archivo del module specifier, sigue la cadena de alias de cada
+  binding (`symbol.getAliasedSymbol()` en loop) via el type checker de
+  TypeScript — cubre barrel simple, alias de default
+  (`export { default as X }`) y barrel-of-barrels (dos niveles).
+- `index.ts`: pipeline actualizado para dedupear `allComponents`
+  globalmente y resolver el SourceFile de cada componente por su
+  filePath real (antes se agrupaba por archivo escaneado, lo cual
+  rompia cuando el barrel "redescubria" el mismo componente).
+- Fixture: `sample-project/src/components/index.ts` (barrel) agregado;
+  `App.tsx` actualizado para importar Header/Footer desde ahi (antes
+  rutas directas), como caso de integracion end-to-end sin cambiar el
+  grafo esperado.
+- Tests: scanFiles/extractImports/buildGraph actualizados al mismo
+  pipeline de dedupe global (antes agrupaban por archivo, invalido con
+  barrels); 4 tests nuevos para casos borde (re-export simple, alias
+  de default, barrel-of-barrels, dependencia end-to-end via barrel en
+  sample-project). 19 tests totales, todos pasando. `npm run build` y
+  `npm run scan` verificados manualmente contra sample-project (5
+  componentes, sin duplicados, mismo grafo que antes del barrel).
+
+### Que quedo pendiente
+- Los otros 3 casos de PLAN.md > "Casos pendientes" siguen sin
+  resolver: lazy imports, HOCs, default exports anonimos.
+- REPO_STANDARDS.md Fase 0 (Husky, ESLint+Prettier, README minimo,
+  Dependabot) sigue sin implementar.
+
+### Decisiones tomadas
+- Resolver la cadena de alias via el type checker de TypeScript
+  (`symbol.getAliasedSymbol()`), no con heuristicas de archivos —
+  consistente con el resto del proyecto ("no regex, via el modulo de
+  TypeScript"). Cubre barrels de cualquier profundidad sin logica ad
+  hoc por nivel.
+- El pipeline de `index.ts` (y de los tests que integran contra
+  sample-project) dedupea componentes globalmente y resuelve el
+  SourceFile de cada uno por su filePath real; agrupar por "archivo
+  donde se lo encontro" (el approach de Pasos 1-5) queda invalidado en
+  cuanto existe un barrel, porque un mismo componente puede encontrarse
+  en mas de un archivo.
+
+### Estado del repo al cerrar esta sesion
+- Branch `feature/barrel-exports` con 2 commits (plan + implementacion),
+  aun no mergeada a main a la espera de confirmacion del usuario para
+  pushear.
