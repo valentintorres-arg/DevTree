@@ -140,7 +140,7 @@ otros devs). No es prioridad funcional.
 - [x] ESLint + Prettier
 - [x] README mínimo
 - [ ] `.env.example` (cuando aplique — todavía no hay variables de entorno)
-- [ ] Dependabot
+- [x] Dependabot
 - [x] Convención de commits/branching aplicada desde el primer commit
 
 **Fase 1 — con tests reales:**
