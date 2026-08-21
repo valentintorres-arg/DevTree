@@ -199,6 +199,73 @@ Leer esto primero al arrancar una sesion nueva (ver CLAUDE.md).
   general, ya que el `id` del grafo es el nombre, no la ruta).
 
 ### Estado del repo al cerrar esta sesion
-- Branch `feature/anonymous-default-exports` con 2 commits (plan +
-  implementacion), pendiente de confirmacion del usuario para mergear
-  y pushear.
+- Branch `feature/anonymous-default-exports` mergeada (ff) a main y
+  pusheada, junto con la branch, tras confirmacion del usuario.
+
+## 2026-08-21 (sesion 5)
+
+### Que se hizo
+- Paso 8 planificado en PLAN.md e implementado: detectar componentes
+  envueltos en HOCs (`const ProtectedPage = withAuth(Page);`), el
+  ultimo de los "casos pendientes" pedido explicitamente por el
+  usuario ("HOCs next").
+- Verificado con un script exploratorio los 3 shapes relevantes: HOC
+  nombrado (`VariableDeclaration` con initializer `CallExpression`,
+  argumento `Identifier` PascalCase), HOC como default export sin
+  variable (mismo patron que el default anonimo del Paso 7 pero con
+  `CallExpression`), y HOC currificado (`connect(mapState)(Widget)` —
+  el argumento del call externo sigue siendo el componente, sin logica
+  especial para el curry).
+- `detectComponents.ts`: sin body de funcion que verificar con
+  `returnsJsx` (withAuth casi siempre es externo al archivo), se usa
+  nombre + shape como proxy: PascalCase + al menos un argumento
+  `Identifier` PascalCase (`looksLikeHocCall`). Excluye a proposito
+  falsos positivos obvios como `const Logger = createLogger()` (sin
+  argumentos). Nuevo `ComponentExportType`: `hocWrapped`.
+  `extractImports.ts` no necesito cambios: el componente envuelto ya
+  se detecta como dependencia por el mecanismo existente (su archivo
+  esta entre los imports locales).
+- **Bug preexistente descubierto** (no arreglado, fuera de alcance de
+  Paso 8, anotado en PLAN.md > "Casos pendientes"): al escribir el
+  fixture con una factory de HOC real
+  (`function withAuth(C) { return function Wrapped(props) { return
+  <C {...props}/>; }; }`), `withAuth` se autodetecta incorrectamente
+  como componente — `returnsJsx` (Paso 2) no respeta el limite de "no
+  bajar a una funcion anidada" cuando el `return` de la funcion
+  exterior es directamente otra funcion que contiene JSX. Se evito en
+  el fixture importando `withAuth` desde un paquete externo no
+  resoluble en vez de definirlo como archivo local del proyecto.
+- Fixture: `components/Page.tsx` (componente simple) y
+  `components/ProtectedPage.tsx` (`const ProtectedPage =
+  withAuth(Page)`, con `withAuth` importado de un paquete externo
+  ficticio), consumido desde `App.tsx`. Grafo verificado end-to-end:
+  `ProtectedPage -> [Page]`, `App -> [Footer, Header, ProtectedPage]`.
+- Tests: 5 casos borde nuevos (HOC simple, currificado, default sin
+  nombre, sin-argumentos no es HOC, nombre lowercase no es
+  componente) mas actualizacion de los 4 tests de integracion. 27
+  tests totales, todos pasando. `npm run build` y `npm run scan`
+  verificados manualmente (8 componentes, sin duplicados).
+
+### Que quedo pendiente
+- Unico caso original de PLAN.md > "Casos pendientes" sin resolver:
+  lazy imports (`React.lazy`).
+- Nuevo caso anotado (no resolver ahora): fix de `returnsJsx` para que
+  respete el limite de funcion anidada dentro de la expresion de un
+  `return` (ver arriba).
+- REPO_STANDARDS.md Fase 0 (Husky, ESLint+Prettier, README minimo,
+  Dependabot) sigue sin implementar.
+
+### Decisiones tomadas
+- Heuristica de deteccion de HOC basada en nombre (PascalCase) + shape
+  (al menos un argumento PascalCase), sin poder verificar JSX — unica
+  senal estatica disponible ya que `withAuth` casi siempre viene de
+  otro modulo. Riesgo aceptado y documentado: puede haber falsos
+  positivos/negativos que no se pueden resolver sin tipos (ej.
+  `mergeConfigs(DefaultConfig)` seria un falso positivo).
+- Bug de `returnsJsx` encontrado durante Paso 8 se anota como caso
+  pendiente en vez de arreglarse en este mismo paso, siguiendo la
+  regla del proyecto de no expandir el alcance del paso en curso.
+
+### Estado del repo al cerrar esta sesion
+- Branch `feature/hoc-detection` con 2 commits (plan + implementacion),
+  pendiente de confirmacion del usuario para mergear y pushear.
