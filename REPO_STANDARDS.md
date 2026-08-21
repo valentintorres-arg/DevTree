@@ -29,7 +29,7 @@ que algo "ya está" o que "no hace falta todavía".
 
 - Descripción corta del proyecto (qué es, qué problema resuelve)
 - Stack técnico
-- Pasos de instalación local (`npm install`, variables de entorno
+- Pasos de instalación local (`pnpm install`, variables de entorno
   necesarias, comando para correr)
 - Estado actual del proyecto (ej: "POC en desarrollo — parser de
   componentes")

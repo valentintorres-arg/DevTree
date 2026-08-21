@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "description": "Herramientas de repo-hygiene (lint, format, pre-commit hooks) compartidas por los proyectos de este repo.",
+  "packageManager": "pnpm@10.34.5",
   "scripts": {
     "prepare": "husky",
     "lint": "eslint poc-parser/src",

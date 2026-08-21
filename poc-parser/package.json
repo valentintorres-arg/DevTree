@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "POC: parser de arbol de componentes React con ts-morph",
   "main": "dist/index.js",
+  "packageManager": "pnpm@10.34.5",
   "scripts": {
     "build": "tsc",
     "scan": "ts-node src/index.ts",

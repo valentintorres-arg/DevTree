@@ -25,19 +25,20 @@ sample-project/      # proyecto React/TS de juguete usado como fixture
 
 ## Instalación y uso
 
-Requiere Node.js instalado. No hay variables de entorno.
+Requiere Node.js y [pnpm](https://pnpm.io/) instalados. No hay variables
+de entorno. Usar siempre `pnpm`, no `npm`.
 
 ```bash
 # Herramientas de repo (lint/format/hooks), en la raíz
-npm install
+pnpm install
 
 # El parser
 cd poc-parser
-npm install
-npm test          # corre la suite de tests (vitest)
-npm run build      # compila TypeScript
-npm run scan       # corre el parser contra sample-project/ y escribe
-                    # poc-parser/output/graph.json
+pnpm install
+pnpm test          # corre la suite de tests (vitest)
+pnpm run build      # compila TypeScript
+pnpm run scan       # corre el parser contra sample-project/ y escribe
+                     # poc-parser/output/graph.json
 ```
 
 ## Estado actual

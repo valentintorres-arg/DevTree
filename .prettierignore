@@ -1,4 +1,5 @@
 node_modules/
 dist/
 poc-parser/output/
-package-lock.json
+pnpm-lock.yaml
+poc-parser/pnpm-lock.yaml
