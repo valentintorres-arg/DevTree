@@ -99,7 +99,7 @@ sample-project/         # proyecto React/TS de juguete para probar
 - [ ] Lazy imports (`React.lazy(() => import(...))`)
 - [ ] HOCs (`withAuth(Component)`)
 - [x] Barrel exports / re-exports desde `index.ts` — ver Paso 6
-- [ ] Componentes exportados como `default` sin nombre explícito
+- [x] Componentes exportados como `default` sin nombre explícito — ver Paso 7
 
 ### Paso 6 — Barrel exports / re-exports desde `index.ts`
 
@@ -144,6 +144,45 @@ correctamente:
   (`export { default as Button } from './Button'`) y barrel-de-barrel
   (re-export transitivo de dos niveles), además del fixture de
   integración de arriba.
+
+### Paso 7 — Componentes exportados como `default` sin nombre explícito
+
+**Problema:** `export default function () {...}` y
+`export default () => {...}` no tienen un identificador propio.
+Verificado con `getExportedDeclarations()`: el primero devuelve un
+`FunctionDeclaration` con `getName() === undefined`; el segundo
+devuelve el nodo `ArrowFunction` directamente (no envuelto en una
+`VariableDeclaration`, a diferencia de `const X = () => {...}`). Hoy
+`detectComponents` descarta ambos casos: el primero por el chequeo
+`if (!name || ...) continue`, el segundo porque no hay ninguna rama
+que matchee un `ArrowFunction` suelto como declaración.
+
+**Cambios:**
+- `detectComponents.ts`:
+  - Cuando el `FunctionDeclaration` no tiene nombre, derivar uno del
+    archivo (`path.basename(filePath, ext)`, ej. `Modal.tsx` → `Modal`)
+    en lugar de descartarlo.
+  - Agregar una rama `Node.isArrowFunction(declaration)` para el caso
+    `export default () => {...}` suelto, con el mismo fallback de
+    nombre derivado del archivo.
+  - El chequeo de hooks (`HOOK_NAME_PATTERN`) se aplica sobre el
+    nombre ya resuelto (real o derivado), para no detectar como
+    componente un default anónimo en un archivo tipo `useAlgo.ts`.
+  - Nuevos valores de `ComponentExportType`:
+    `"anonymousDefaultFunction"` y `"anonymousDefaultArrow"`, para
+    distinguirlos en el log de `index.ts` (no se exponen en
+    `graph.json`, que no incluye `exportType`).
+- Limitación conocida y aceptada (documentar, no resolver): si dos
+  archivos con default anónimo comparten el mismo nombre de archivo en
+  carpetas distintas (ej. dos `index.tsx`), el nombre derivado
+  colisiona en el grafo — el mismo riesgo ya existe hoy para
+  componentes con nombre igual en archivos distintos, porque el `id`
+  del grafo es el nombre, no la ruta.
+- Tests: casos borde en memoria (`export default function () {...}`,
+  `export default () => {...}`, ambos con JSX; un caso con nombre de
+  archivo tipo hook para confirmar que se sigue ignorando) y al menos
+  un componente con default anónimo agregado a `sample-project` para
+  probarlo end-to-end en el `graph.json` real.
 
 ## Criterio de éxito del POC
 Correr un solo comando (`npm run scan` o similar) sobre `sample-project/`
