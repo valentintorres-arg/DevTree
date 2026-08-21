@@ -145,8 +145,10 @@ otros devs). No es prioridad funcional.
 
 **Fase 1 — con tests reales:**
 
-- [ ] GitHub Actions CI (lint + test)
-- [ ] Branch protection en `main`
+- [x] GitHub Actions CI (lint + test) — verificado corriendo en verde
+- [ ] Branch protection en `main` — no es código, requiere GitHub
+      Settings; no hay `gh` CLI en este entorno para automatizarlo, ver
+      PROGRESS.txt para el paso manual pendiente
 
 **Fase 2 — con algo desplegable:**
 
@@ -154,9 +156,13 @@ otros devs). No es prioridad funcional.
 - [ ] Dockerfile / docker-compose
 - [ ] Env vars de producción documentadas
 
+_No aplica todavía: el proyecto sigue siendo un script CLI (`poc-parser`),
+no hay nada desplegable (ver PLAN.md). Anotado, no implementado._
+
 **Fase 3 — portfolio:**
 
-- [ ] README con screenshots/GIF/demo
-- [ ] Diagrama de arquitectura
-- [ ] Issue templates
-- [ ] LICENSE
+- [ ] README con screenshots/GIF/demo (no aplica todavía, no hay UI)
+- [x] Diagrama de arquitectura
+- [ ] Issue templates (no aporta valor funcional a un proyecto de una
+      sola persona todavía, ver nota en Fase 3 arriba)
+- [x] LICENSE

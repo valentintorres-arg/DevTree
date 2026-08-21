@@ -15,6 +15,27 @@ habilitar generación de código asistida.
 - ESLint (flat config, `typescript-eslint`) + Prettier, corridos vía
   Husky + lint-staged en cada commit
 
+## Arquitectura
+
+El parser (`poc-parser/src/index.ts`) encadena cuatro pasos, cada uno en
+su propio módulo (ver `PLAN.md` Pasos 1-4):
+
+```mermaid
+flowchart LR
+    A["sample-project/**/*.ts, *.tsx"] --> B["scanFiles<br/>(Project de ts-morph)"]
+    B --> C["detectComponents<br/>¿qué exports son componentes?"]
+    C --> D["extractImports<br/>¿de qué otros componentes depende?"]
+    D --> E["buildGraph"]
+    E --> F["output/graph.json"]
+```
+
+`detectComponents` reconoce cuatro formas de exportar un componente
+(function declaration, arrow const, default export anónimo, componente
+envuelto en un HOC); `extractImports` resuelve la dependencia real de
+cada uno, siguiendo imports estáticos, barrels/re-exports y
+`React.lazy(() => import(...))` vía el compilador de TypeScript (no
+regex). Ver `PLAN.md` para el detalle de cada caso.
+
 ## Estructura del repo
 
 ```
@@ -53,3 +74,7 @@ sesiones de trabajo.
 
 Todavía no incluye: generación de código con LLM, drag and drop, backend,
 ni UI de visualización.
+
+## Licencia
+
+[MIT](LICENSE)
