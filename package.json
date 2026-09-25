@@ -30,7 +30,7 @@
     "eslint-plugin-react-refresh": "^0.5.4",
     "husky": "^9.1.7",
     "lint-staged": "^17.3.0",
-    "prettier": "^3.9.6",
+    "prettier": "^3.9.8",
     "typescript-eslint": "^8.67.0"
   }
 }
